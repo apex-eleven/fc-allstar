@@ -313,9 +313,9 @@ export const ROSTER: RosterEntry[] = [
   { file: 'p254.gif', rarity: 'mythical', name: 'SZOBOSZLAI', position: 'CM', ovr: 122 },
 
   /* ── NUMERO 10  ─────────────────────────────────────────*/
-  { file: 'p265.gif', rarity: 'mythical', name: 'ZIDANE', position: 'CM', ovr: 122 },
-  { file: 'p266.gif', rarity: 'mythical', name: 'PELE', position: 'CAM', ovr: 122 },
-  { file: 'p267.gif', rarity: 'mythical', name: 'DEMBELE', position: 'ST', ovr: 122 },
+  { file: 'p265.gif', rarity: 'mythical', name: 'ZIDANE', position: 'CM', ovr: 123 },
+  { file: 'p266.gif', rarity: 'mythical', name: 'PELE', position: 'CAM', ovr: 123 },
+  { file: 'p267.gif', rarity: 'mythical', name: 'DEMBELE', position: 'ST', ovr: 123 },
   { file: 'p268.gif', rarity: 'mythical', name: 'BERGKAMP', position: 'ST', ovr: 121 },
   { file: 'p269.gif', rarity: 'mythical', name: 'MUSIALA', position: 'ST', ovr: 120 },
   { file: 'p270.gif', rarity: 'mythical', name: 'CARRASCO', position: 'LW', ovr: 119 },
