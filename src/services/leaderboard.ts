@@ -1,0 +1,61 @@
+/**
+ * ประกอบตารางอันดับจากคะแนน ranking ปัจจุบันของผู้เล่น
+ * เป็น pure function ล้วน ห้าม import React หรือแตะ state
+ */
+import { botQuota, botTickAt, buildBotEntries, DEFAULT_BOT_CONFIG } from '@/services/bots';
+import type { BotConfig } from '@/types/bot';
+import type { LeaderboardEntry, RankRecord } from '@/types/match';
+
+/**
+ * รวมแถวของผู้เล่น (คะแนนสด) เข้ากับทีมอื่นในตาราง แล้วเรียงอันดับใหม่
+ * ชนะแล้วอันดับขยับขึ้นทันทีโดยไม่ต้องแก้ mock data
+ *
+ * `rivals` คือผู้เล่นจริงจากเซิร์ฟเวอร์ (โหมดออนไลน์) — ไม่ส่งมาก็มีแต่ทีมจำลอง
+ * อันดับ 1 ของผลลัพธ์นี้คือผู้ที่ได้ฉายา 1ST CHAMPION (ดู components/rank/RankBadge)
+ *
+ * แถวที่เหลือเติมด้วยทีมจำลองที่ค่าพลังและคะแนนขยับเองตามเวลา (services/bots.ts)
+ * เซิร์ฟเวอร์ที่เพิ่งเปิดจึงไม่ดูร้าง และทีมจำลองจะถูกผู้เล่นจริงเบียดออกไปเอง
+ * เมื่อคนเยอะขึ้น — แต่ไม่หายไปทั้งหมด เพราะมีพื้น minBots กันไว้ (ดู botQuota)
+ *
+ * `tick` คือนาฬิกาของโลกบอท (ดู botTickAt) — ส่งเข้ามาเพื่อให้ผลคงที่ในเทส
+ * `botConfig` คือค่าตั้งจากหน้า ADMIN → ทีมจำลอง (ไม่ส่ง = ค่าเริ่มต้นในโค้ด)
+ * `botDeltas` คือแต้มที่ทีมจำลองได้/เสียจากการแข่งกับผู้เล่นคนนี้ (ดู applyDelta ใน services/bots)
+ */
+export const buildLeaderboard = (
+  record: RankRecord,
+  teamName: string,
+  teamOvr: number,
+  managerName = 'คุณผู้จัดการ',
+  rivals?: LeaderboardEntry[],
+  tick: number = botTickAt(),
+  botConfig: BotConfig = DEFAULT_BOT_CONFIG,
+  botDeltas: Record<string, number> = {},
+): LeaderboardEntry[] => {
+  const humans = rivals ?? [];
+
+  const me: LeaderboardEntry = {
+    rank: 0,
+    managerName,
+    teamName,
+    teamOvr,
+    points: record.points,
+    wins: record.wins,
+    draws: record.draws,
+    losses: record.losses,
+    isCurrentUser: true,
+  };
+
+  // เพดานคะแนนของบอทอิงคนที่เก่งที่สุดในตาราง บอทจึงไม่มีวันแซงอันดับ 1 ของคนจริง
+  const anchor = [...humans, me].reduce((max, entry) => Math.max(max, entry.points), 0);
+  const bots = buildBotEntries(
+    anchor,
+    botQuota(botConfig, humans.length),
+    tick,
+    botConfig,
+    botDeltas,
+  );
+
+  return [...humans, ...bots, me]
+    .sort((a, b) => b.points - a.points || b.teamOvr - a.teamOvr)
+    .map((entry, index) => ({ ...entry, rank: index + 1 }));
+};

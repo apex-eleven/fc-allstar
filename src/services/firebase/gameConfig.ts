@@ -1,0 +1,106 @@
+/**
+ * ค่าตั้งกลางของเกมที่เจ้าของโปรเจคกำหนดเอง (collection `config`)
+ *
+ * ทุกเอกสารในนี้: ผู้เล่นที่ล็อกอินแล้ว "อ่านได้ทุกคน" แต่ "เขียนได้เฉพาะเจ้าของโปรเจค"
+ * (ดูฟังก์ชัน isProjectOwner ใน firestore.rules)
+ *
+ * ตั้งใจให้เป็นตัวกลางบาง ๆ — ตัวไหนที่ต้องรู้โครงสร้างของข้อมูลจริง
+ * ให้ไปทำที่ hooks/useGameConfig.tsx แทน ไฟล์นี้รู้แค่ "อ่าน/เขียนเอกสารตามชื่อ"
+ */
+import { doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore';
+import { getFirebase } from '@/services/firebase/config';
+
+/** ชื่อเอกสารทั้งหมดใน collection config */
+export const CONFIG_DOCS = {
+  /** การ์ดรางวัลอันดับ 1–10 (ดู services/firebase/rankRewards.ts) */
+  rankRewards: 'rankRewards',
+  /** คำสั่งรีเซ็ตดาว/ซีซันของทั้งเซิร์ฟเวอร์ */
+  ladder: 'ladder',
+  /** ประกาศกลางจอตอนเข้าเกม */
+  announcement: 'announcement',
+  /** รายชื่อบัญชีที่ถูกระงับ */
+  bans: 'bans',
+  /** ซองการ์ดในร้านที่เจ้าของโปรเจคสร้างเอง */
+  packs: 'packs',
+  /** ดีลแลกเปลี่ยนการ์ดที่เจ้าของโปรเจคสร้างเอง (เมนู Exchange → แลกด้วยการ์ด) */
+  exchangeDeals: 'exchangeDeals',
+  /** ร้านแลกด้วยแต้ม: สวิตช์เปิด/ปิด + การ์ดที่แอดมินเลือกเอง (เมนู Exchange → แลกด้วยแต้ม) */
+  pointsExchange: 'pointsExchange',
+  /** กล่องสุ่มรางวัลแบบตาราง 8×8 (เมนู Lucky Box) */
+  luckyGrid: 'luckyGrid',
+  /** FC ALLSTAR PASS — พาสประจำซีซัน 30 เลเวล (เมนู Pass) */
+  pass: 'pass',
+  /** ประกาศอัปเดตล่าสุด (ฟีดข่าวบนหน้า HOME — ต่างจาก announcement ที่เป็นป็อปอัป) */
+  news: 'news',
+  /** รายชื่อการ์ดที่แอดมินเลือกให้โชว์เป็น "การ์ดใหม่ล่าสุด" บนหน้า HOME */
+  featuredCards: 'featuredCards',
+  /** แผนการเล่นที่เจ้าของโปรเจควาดเอง (เพิ่มจากแผนพื้นฐานในโค้ด ไม่ได้แทนที่) */
+  formations: 'formations',
+  /** ค่าพลังพื้นฐานที่แอดมินแก้ทับรายคน (PHASE 13.5 — ADMIN → ค่าพลังนักเตะ) */
+  playerOverrides: 'playerOverrides',
+  /** ตารางตีบวก +0 → +8 ที่แอดมินปรับได้ (PHASE 13.5 — ADMIN → ตารางตีบวก) */
+  upgradeConfig: 'upgradeConfig',
+  /** ร้านไอเทมช่วยอัปเกรด: เปิด/ปิด ราคา และช่องทางจ่าย (ADMIN → ร้านไอเทม) */
+  upgradeItemShop: 'upgradeItemShop',
+  /** รางวัลล็อกอินรายสัปดาห์/รายเดือน (ADMIN → รางวัลล็อกอิน) */
+  loginBonus: 'loginBonus',
+  /** ระบบแลกการ์ดเป็นเงิน: เพดานรายวัน ตัวคูณราคา (ADMIN → แลกการ์ดเป็นเงิน) */
+  cardCash: 'cardCash',
+  /** ตลาดซื้อขายนักเตะ: รอบเวลา ปริมาณของ ราคา ใบเด่น รายชื่อห้าม (ADMIN → ตลาดซื้อขาย) */
+  market: 'market',
+  /** ทีมพิเศษ: ชุด 11 ตัวจริงที่จัดครบแล้วได้โบนัส Team OVR (ADMIN → ทีมพิเศษ) */
+  squadBonus: 'squadBonus',
+  /** ทีมจำลองในตารางอันดับ: จำนวน ช่วงค่าพลัง และค่าที่ล็อกรายตัว (ADMIN → ทีมจำลอง) */
+  bots: 'bots',
+} as const;
+
+const COLLECTION = 'config';
+
+/** ติดตามเอกสารตั้งค่าหนึ่งใบแบบเรียลไทม์ (null = ยังไม่เคยตั้ง หรือเล่นออฟไลน์) */
+export const watchConfigDoc = <T>(
+  docId: string,
+  onChange: (value: T | null) => void,
+): (() => void) => {
+  const firebase = getFirebase();
+  if (!firebase) {
+    onChange(null);
+    return () => undefined;
+  }
+
+  return onSnapshot(
+    doc(firebase.db, COLLECTION, docId),
+    (snapshot) => onChange((snapshot.data() as T | undefined) ?? null),
+    (error) => {
+      console.error(`[firebase] อ่านค่าตั้ง ${docId} ไม่สำเร็จ`, error);
+      onChange(null);
+    },
+  );
+};
+
+/**
+ * ล้างค่า undefined ออกก่อนส่งขึ้น Firestore
+ *
+ * ⚠️ Firestore ปฏิเสธ "ทั้งเอกสาร" ทันทีที่เจอ undefined สักฟิลด์เดียว
+ * แต่ค่าตั้งของแอดมินหลายชุดมีฟิลด์ optional (เช่นรางวัลที่ใส่ itemId เฉพาะบางประเภท)
+ * ล้างตรงนี้จุดเดียว แผงแอดมินทุกอันทั้งที่มีอยู่และที่จะเพิ่มทีหลังจึงปลอดภัยตามไปด้วย
+ *
+ * ต้องล้างเฉพาะ value เท่านั้น — serverTimestamp() เป็น sentinel ของ Firebase
+ * ถ้าเอาไปผ่าน JSON จะกลายเป็นออบเจกต์เปล่าแล้วเวลาไม่ถูกบันทึก
+ */
+const sanitize = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
+
+/** บันทึกเอกสารตั้งค่า (เฉพาะเจ้าของโปรเจค) — โยน error ให้ UI แสดงข้อความเอง */
+export const saveConfigDoc = async (
+  docId: string,
+  value: Record<string, unknown>,
+  uid: string,
+): Promise<void> => {
+  const firebase = getFirebase();
+  if (!firebase) throw new Error('offline');
+
+  await setDoc(
+    doc(firebase.db, COLLECTION, docId),
+    { ...sanitize(value), updatedBy: uid, updatedAt: serverTimestamp() },
+    { merge: true },
+  );
+};

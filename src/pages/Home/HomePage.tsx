@@ -1,0 +1,24 @@
+/** หน้าแรก: ประกาศอัปเดตล่าสุด, การ์ดใหม่ล่าสุด (หลายแถว) และ Leaderboard */
+import { LeaderboardPodium } from '@/components/home/LeaderboardPodium';
+import { NewCardsRow } from '@/components/home/NewCardsRow';
+import { NewsFeedPanel } from '@/components/home/NewsFeedPanel';
+import { useGameConfig } from '@/hooks/useGameConfig';
+import { useLeaderboard } from '@/hooks/useLeaderboard';
+
+export const HomePage = () => {
+  const { news, featuredCardRows } = useGameConfig();
+  const leaderboard = useLeaderboard();
+
+  return (
+    <div className="grid gap-4 xl:grid-cols-[1fr_340px] xl:items-start">
+      <div className="space-y-4">
+        <NewsFeedPanel news={news} />
+        {featuredCardRows.map((row) => (
+          <NewCardsRow key={row.id} title={row.title} badge={row.badge} cardIds={row.cardIds} />
+        ))}
+      </div>
+
+      <LeaderboardPodium entries={leaderboard} />
+    </div>
+  );
+};

@@ -1,0 +1,186 @@
+/**
+ * โครงสร้างข้อมูลการแข่งขัน: คู่แข่ง, สถานะจับคู่, ผลการแข่ง, อันดับ และภารกิจ
+ */
+import type { FormationId } from './team';
+
+/** ระดับความยากของคู่แข่ง */
+export type Difficulty = 'easy' | 'normal' | 'hard' | 'elite';
+
+/**
+ * สถานะของระบบ Matchmaking
+ * idle → searching (หาคู่) → found (เจอคู่แล้ว รอกดเริ่ม) → playing (กำลังแข่ง) → finished (มีผล)
+ * searching → empty เมื่อไม่มีผู้เล่นจริงให้เจอ (คนน้อย หรือเพิ่งเจอทุกคนไปแล้ว)
+ */
+export type MatchStatus = 'idle' | 'searching' | 'found' | 'playing' | 'finished' | 'empty';
+
+/** ผลการแข่งจากมุมมองผู้เล่น */
+export type MatchOutcome = 'win' | 'draw' | 'loss';
+
+/** ทีมคู่แข่ง (ตอนนี้เป็น bot จาก mock data) */
+export interface Opponent {
+  id: string;
+  name: string;
+  manager: string;
+  ovr: number;
+  formationId: FormationId;
+  difficulty: Difficulty;
+  /** เหรียญที่ได้เมื่อชนะ */
+  rewardCoins: number;
+  /** true = บอทที่ระบบสุ่มสร้างขึ้นตอนหาคู่ (ไม่ได้อยู่ใน mock data) */
+  isBot?: boolean;
+}
+
+/** โอกาสแพ้/เสมอ/ชนะที่คำนวณจากผลต่าง OVR (รวมกันได้ 1) */
+export interface MatchOdds {
+  win: number;
+  draw: number;
+  loss: number;
+}
+
+/**
+ * เหตุการณ์หนึ่งเหตุการณ์ในแมตช์: ประตู, บาดเจ็บ (ต้องเปลี่ยนตัว), ใบแดง (โดนแบน 3 นัดถัดไป)
+ */
+export interface MatchEvent {
+  /** นาทีที่เกิดเหตุการณ์ 1–90 */
+  minute: number;
+  /** ฝั่งที่เกิดเหตุการณ์ */
+  side: 'team' | 'opponent';
+  /** ชื่อผู้เล่นที่เกี่ยวข้อง (ฝั่งคู่แข่งเป็นชื่อสมมติถ้าไม่รู้ทีมจริง) */
+  scorer: string;
+  type: 'goal' | 'injury' | 'redCard';
+  /**
+   * รหัสการ์ดของนักเตะที่บาดเจ็บ/โดนใบแดง — มีเฉพาะฝั่ง 'team' เท่านั้น
+   * (ฝั่งคู่แข่งเราไม่รู้ id การ์ดจริงของเขา ใช้แค่ชื่อพอ)
+   * ใช้เปิดหน้าต่างเปลี่ยนตัว (injury) หรือขึ้นทะเบียนโดนแบน (redCard)
+   */
+  cardId?: string;
+  /** ช่องบนสนามของนักเตะที่บาดเจ็บ/โดนใบแดง — มีเฉพาะฝั่ง 'team' */
+  slotId?: string;
+}
+
+/** ผลการแข่งหนึ่งนัด */
+export interface MatchResult {
+  id: string;
+  opponentId: string;
+  teamScore: number;
+  opponentScore: number;
+  /** ชื่อคู่แข่ง เก็บติดผลไว้เลย เพราะบอทที่สุ่มมาไม่ได้อยู่ใน OPPONENTS */
+  opponentName: string;
+  opponentOvr: number;
+  teamOvr: number;
+  outcome: MatchOutcome;
+  coinsEarned: number;
+  /** คะแนน ranking ที่ได้/เสียจากนัดนี้ (ติดลบได้เมื่อแพ้) */
+  rankingPoints: number;
+  /** โอกาสชนะก่อนเริ่มแข่ง ใช้แสดงบนหน้าจอผลการแข่ง */
+  odds: MatchOdds;
+  /** ไทม์ไลน์ประตู เรียงตามนาที ใช้เล่นสดระหว่างแข่ง */
+  events: MatchEvent[];
+  /**
+  * league    = ลีกประจำวัน
+  * friendly  = แมตช์ที่เรากดหาคู่เอง
+  * defense   = ถูกผู้เล่นคนอื่นท้า (ผลเข้ามาทางกล่องผลการแข่ง ไม่ว่าตอนนั้นจะออนไลน์อยู่หรือไม่)
+  */
+  mode?: 'league' | 'friendly' | 'defense';
+  /** คะแนนลีกที่ได้จากนัดนี้ (3/1/0) — มีเฉพาะนัดในลีก */
+  leaguePoints?: number;
+  /**
+   * สถิติเต็มของแมตช์จาก Match Engine (ครองบอล ยิง เข้าสกัด ฟาวล์ ฯลฯ)
+   * เป็น optional เพราะผลที่มาจากเซิร์ฟเวอร์หรือนัดที่ถูกท้ายังไม่มีข้อมูลชุดนี้
+   */
+  engineStats?: MatchEngineStats;
+  playedAt: string;
+}
+
+/**
+ * สถิติเต็มของหนึ่งนัดที่มาจาก Match Engine
+ * ใช้โครงเดียวกับ TeamMatchStats ของเอนจิน แต่ประกาศเป็นตัวเลขล้วนตรงนี้
+ * เพื่อไม่ให้ชั้น types ของเกมต้องพึ่งพาโมดูล match-engine
+ */
+export interface MatchEngineTeamStats {
+  passes: number;
+  completedPasses: number;
+  interceptions: number;
+  touches: number;
+  possessionSeconds: number;
+  shots: number;
+  shotsOnTarget: number;
+  goals: number;
+  saves: number;
+  tackles: number;
+  successfulTackles: number;
+  fouls: number;
+  yellowCards: number;
+  redCards: number;
+}
+
+/** สถิติสองฝั่งของหนึ่งนัด */
+export interface MatchEngineStats {
+  team: MatchEngineTeamStats;
+  opponent: MatchEngineTeamStats;
+  /** สัดส่วนการครองบอลของเรา 0–1 */
+  possession: number;
+}
+
+/** สถิติสะสมของผู้เล่นในซีซันนี้ */
+export interface RankRecord {
+  points: number;
+  wins: number;
+  draws: number;
+  losses: number;
+}
+
+/** สถานะรวมของหน้า Match */
+export interface MatchState {
+  status: MatchStatus;
+  opponent: Opponent | null;
+  result: MatchResult | null;
+  /** โอกาสชนะของคู่ที่กำลังจะแข่ง (null เมื่อยังไม่มีคู่แข่ง) */
+  odds: MatchOdds | null;
+}
+
+/** สถานะการถ่ายทอดสดระหว่างแข่ง (มีค่าเฉพาะตอน status = 'playing' หรือ 'finished') */
+export interface LiveMatch {
+  /** นาทีในเกมตอนนี้ 0–90 */
+  minute: number;
+  teamScore: number;
+  opponentScore: number;
+  /** เหตุการณ์ที่เกิดไปแล้ว ใหม่สุดอยู่บน */
+  events: MatchEvent[];
+}
+
+/** หนึ่งแถวในตาราง Leaderboard */
+export interface LeaderboardEntry {
+  rank: number;
+  /** uid ของผู้เล่นจริง — มีเฉพาะแถวที่มาจากเซิร์ฟเวอร์ (ทีมจำลองไม่มี) ใช้กดดูตัวจริงของเขา */
+  uid?: string;
+  /** รูปโปรไฟล์ (data URL) — ไม่มีก็แสดงตัวอักษรแรกของชื่อแทน */
+  avatar?: string;
+  managerName: string;
+  teamName: string;
+  teamOvr: number;
+  points: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  /** true สำหรับแถวของผู้เล่นเอง เพื่อไฮไลต์ใน UI */
+  isCurrentUser?: boolean;
+  /**
+   * true = ทีมจำลองประจำเซิร์ฟเวอร์ (ดู services/bots.ts) ไม่ใช่คนจริง
+   * UI ไม่ได้ใช้แสดงอะไรตอนนี้ — มีไว้ให้ระบบอื่นแยกคนจริงออกจากบอทได้
+   */
+  isBot?: boolean;
+}
+
+/** ภารกิจ (Missions) */
+export interface Mission {
+  id: string;
+  title: string;
+  description: string;
+  /** ความคืบหน้าปัจจุบัน */
+  progress: number;
+  /** เป้าหมายที่ต้องทำให้ครบ */
+  goal: number;
+  rewardCoins: number;
+  type: 'daily' | 'weekly' | 'season';
+}
