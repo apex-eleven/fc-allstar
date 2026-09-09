@@ -51,12 +51,14 @@ import { normalizeSquadBonus } from '@/services/squadBonus';
 import { normalizePacks } from '@/services/packConfig';
 import { normalizePass } from '@/services/pass';
 import { normalizeCardCash } from '@/services/cardCash';
+import { normalizeFusion } from '@/services/fusion';
 import { normalizeMarketConfig } from '@/services/market';
 import { normalizeLoginBonus } from '@/services/loginBonus';
 import { normalizePointsExchange } from '@/services/pointsExchange';
 import { isOwnerUsername } from '@/services/rankRewards';
 import type { BotConfig } from '@/types/bot';
 import type { CardCashConfig } from '@/types/cardCash';
+import type { FusionConfig } from '@/types/fusion';
 import type { MarketConfig } from '@/types/market';
 import type { LoginBonusConfig } from '@/types/loginBonus';
 import type { CardPack, ExchangeDeal, PointsExchangeConfig } from '@/types/card';
@@ -146,6 +148,10 @@ interface GameConfigContextValue {
   saveMarket: (config: MarketConfig) => Promise<string | null>;
   /** บันทึกค่าตั้งร้านไอเทม คืนข้อความ error (null = สำเร็จ) */
   saveItemShop: (config: UpgradeItemShopConfig) => Promise<string | null>;
+  /** ค่าตั้งระบบผสมการ์ด (ยังไม่เคยตั้ง = ค่าเริ่มต้นในโค้ด) */
+  fusion: FusionConfig;
+  /** บันทึกค่าตั้งระบบผสมการ์ด คืนข้อความ error (null = สำเร็จ) */
+  saveFusion: (config: FusionConfig) => Promise<string | null>;
   /** ค่าตั้งทีมจำลองในตารางอันดับ (ยังไม่เคยตั้ง = ค่าเริ่มต้นในโค้ด) */
   bots: BotConfig;
   /** บันทึกค่าตั้งทีมจำลอง คืนข้อความ error (null = สำเร็จ) */
@@ -209,6 +215,8 @@ export const GameConfigProvider = ({ children }: { children: ReactNode }) => {
   const [serverBots, setServerBots] = useState<Partial<BotConfig> | null>(null);
   const [serverCardCash, setServerCardCash] = useState<Partial<CardCashConfig> | null>(null);
   const [serverMarket, setServerMarket] = useState<Partial<MarketConfig> | null>(null);
+  /** ค่าตั้งระบบผสมการ์ดที่แอดมินตั้ง — null = ยังไม่เคยตั้ง ใช้ค่าเริ่มต้นในโค้ด */
+  const [serverFusion, setServerFusion] = useState<Partial<FusionConfig> | null>(null);
 
   useEffect(() => {
     if (!ONLINE) return undefined;
@@ -289,7 +297,10 @@ export const GameConfigProvider = ({ children }: { children: ReactNode }) => {
 
     const stopBots = watchConfigDoc<Partial<BotConfig>>(CONFIG_DOCS.bots, setServerBots);
 
+    const stopFusion = watchConfigDoc<Partial<FusionConfig>>(CONFIG_DOCS.fusion, setServerFusion);
+
     return () => {
+      stopFusion();
       stopBots();
       stopMarket();
       stopLadder();
@@ -466,6 +477,11 @@ export const GameConfigProvider = ({ children }: { children: ReactNode }) => {
     [write],
   );
 
+  const saveFusion = useCallback(
+    (next: FusionConfig) => write(CONFIG_DOCS.fusion, { ...normalizeFusion(next) }),
+    [write],
+  );
+
   /** ค่าตั้งตลาดที่ใช้จริง — ของเซิร์ฟเวอร์ต้องผ่านการตรวจก่อนเสมอ */
   const market = useMemo(() => normalizeMarketConfig(serverMarket), [serverMarket]);
 
@@ -473,6 +489,9 @@ export const GameConfigProvider = ({ children }: { children: ReactNode }) => {
   const cardCash = useMemo(() => normalizeCardCash(serverCardCash), [serverCardCash]);
 
   const bots = useMemo(() => normalizeBotConfig(serverBots), [serverBots]);
+
+  /** ค่าตั้งระบบผสมการ์ดที่ใช้จริง — บีบค่าจากเซิร์ฟเวอร์ให้อยู่ในกรอบก่อนเสมอ */
+  const fusion = useMemo(() => normalizeFusion(serverFusion), [serverFusion]);
 
   /**
    * ตารางตีบวกที่ใช้จริง — ของเซิร์ฟเวอร์ต้องผ่านการตรวจก่อน
@@ -570,6 +589,8 @@ export const GameConfigProvider = ({ children }: { children: ReactNode }) => {
       saveCardCash,
       bots,
       saveBots,
+      fusion,
+      saveFusion,
       isOwner,
       uid,
       saveLadder,
@@ -608,6 +629,8 @@ export const GameConfigProvider = ({ children }: { children: ReactNode }) => {
       saveCardCash,
       bots,
       saveBots,
+      fusion,
+      saveFusion,
       saveAnnouncement,
       saveBans,
       saveExchangeDeals,

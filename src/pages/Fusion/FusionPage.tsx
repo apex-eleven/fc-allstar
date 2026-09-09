@@ -1,9 +1,9 @@
 /**
- * หน้า FUSION — ผสมการ์ดนักเตะ 3 ใบเป็นการ์ดใหม่ 1 ใบ
+ * หน้า FUSION — ผสมการ์ดระดับเดียวกันหลายใบเป็นการ์ดใหม่ 1 ใบ
  *
- * โครงหน้า: ช่องวัสดุ 3 ช่อง (ซ้าย) → ตารางโอกาส + ปุ่มผสม (ขวา)
- * กติกาทั้งหมดอยู่ที่ services/fusion.ts หน้านี้ไม่มีตัวเลขของตัวเองเลย
- * อยากปรับความยากหรือช่วงเงินรางวัล ให้ไปแก้ที่ไฟล์นั้นที่เดียว
+ * โครงหน้า: ช่องวัสดุ (ซ้าย) → ตารางโอกาส + ปุ่มผสม (ขวา)
+ * จำนวนช่อง ตารางโอกาส และเงื่อนไขเงินโบนัส มาจาก ADMIN → ผสมการ์ด ทั้งหมด
+ * หน้านี้ไม่มีตัวเลขของตัวเองเลย — อยากปรับความยาก ให้ไปปรับที่หน้าแอดมิน
  */
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -12,14 +12,6 @@ import { FusionRevealOverlay } from '@/components/fusion/FusionRevealOverlay';
 import { PlayerCard } from '@/components/player/PlayerCard';
 import { useFusion } from '@/hooks/useFusion';
 import { usePlayers, type OwnedPlayerCard } from '@/hooks/usePlayers';
-import {
-  FUSION_CANDIDATES,
-  FUSION_CASH_CHANCE,
-  FUSION_CASH_MAX,
-  FUSION_CASH_MIN,
-  FUSION_CASH_MIN_PLUS,
-  FUSION_MATERIALS,
-} from '@/services/fusion';
 import { cn, formatNumber, RARITY_STYLE } from '@/utils/helpers';
 
 /** ช่องวัสดุหนึ่งช่อง — ว่างอยู่ก็กดเพื่อเปิดหน้าเลือกการ์ด */
@@ -66,9 +58,20 @@ const MaterialSlot = ({
 export const FusionPage = () => {
   const { rawCards } = usePlayers();
   const fusion = useFusion();
+  const config = fusion.config;
   const [pickerOpen, setPickerOpen] = useState(false);
 
-  const remaining = FUSION_MATERIALS - fusion.materials.length;
+  const remaining = config.materials - fusion.materials.length;
+
+  // แอดมินปิดระบบไว้ — เมนูถูกซ่อนอยู่แล้ว หน้านี้กันคนที่พิมพ์ /fusion เข้ามาเอง
+  if (!config.enabled) {
+    return (
+      <div className="glass-panel mx-auto max-w-md p-8 text-center">
+        <p className="font-display text-2xl uppercase">ปิดปรับปรุง</p>
+        <p className="mt-2 text-sm text-chalk/50">ระบบผสมการ์ดปิดใช้งานอยู่ในตอนนี้</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -83,15 +86,17 @@ export const FusionPage = () => {
       <header className="panel p-4">
         <h1 className="font-display text-2xl uppercase tracking-wide">ผสมการ์ดนักเตะ</h1>
         <p className="mt-1 text-xs leading-relaxed text-chalk/55">
-          ใช้การ์ด <span className="text-neon">ระดับเดียวกัน {FUSION_MATERIALS} ใบ</span>{' '}
+          ใช้การ์ด <span className="text-neon">ระดับเดียวกัน {config.materials} ใบ</span>{' '}
           ผสมเป็นการ์ดใหม่ 1 ใบในระดับเดิม พร้อมค่าตีบวก +1 ถึง +8 · ยิ่งวัสดุบวกสูง โอกาสได้ผลบวกสูงยิ่งขึ้น
           · การ์ดที่ล็อกไว้หรืออยู่ในทีมใช้ผสมไม่ได้
         </p>
-        <p className="mt-1 text-xs text-gold/80">
-          ใช้การ์ด +{FUSION_CASH_MIN_PLUS} ขึ้นไปครบทั้ง {FUSION_MATERIALS} ใบ มีโอกาส{' '}
-          {Math.round(FUSION_CASH_CHANCE * 100)}% ได้เงินโบนัส {formatNumber(FUSION_CASH_MIN)}–
-          {formatNumber(FUSION_CASH_MAX)} ฿
-        </p>
+        {config.cashEnabled && (
+          <p className="mt-1 text-xs text-gold/80">
+            ใช้การ์ด +{config.cashMinPlus} ขึ้นไปครบทั้ง {config.materials} ใบ มีโอกาส{' '}
+            {Math.round(config.cashChance * 100)}% ได้เงินโบนัส {formatNumber(config.cashMin)}–
+            {formatNumber(config.cashMax)} ฿
+          </p>
+        )}
       </header>
 
       <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
@@ -112,8 +117,8 @@ export const FusionPage = () => {
             )}
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
-            {Array.from({ length: FUSION_MATERIALS }, (_, index) => (
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
+            {Array.from({ length: config.materials }, (_, index) => (
               <MaterialSlot
                 key={index}
                 index={index}
@@ -182,7 +187,7 @@ export const FusionPage = () => {
                   />
                 </div>
                 <span className="w-12 shrink-0 text-right font-mono text-[11px] text-chalk/50">
-                  {chance}%
+                  {chance.toFixed(1)}%
                 </span>
               </li>
             ))}
@@ -196,9 +201,11 @@ export const FusionPage = () => {
                 : 'border-white/10 text-chalk/40',
             )}
           >
-            {fusion.cashUnlocked
-              ? `ปลดล็อกโบนัสเงินแล้ว — โอกาส ${Math.round(FUSION_CASH_CHANCE * 100)}% ได้ ${formatNumber(FUSION_CASH_MIN)}–${formatNumber(FUSION_CASH_MAX)} ฿`
-              : `โบนัสเงินต้องใช้การ์ด +${FUSION_CASH_MIN_PLUS} ขึ้นไปครบทั้ง ${FUSION_MATERIALS} ใบ`}
+            {!config.cashEnabled
+              ? 'ตอนนี้ปิดโบนัสเงินไว้'
+              : fusion.cashUnlocked
+                ? `ปลดล็อกโบนัสเงินแล้ว — โอกาส ${Math.round(config.cashChance * 100)}% ได้ ${formatNumber(config.cashMin)}–${formatNumber(config.cashMax)} ฿`
+                : `โบนัสเงินต้องใช้การ์ด +${config.cashMinPlus} ขึ้นไปครบทั้ง ${config.materials} ใบ`}
           </p>
 
           <button
@@ -215,7 +222,7 @@ export const FusionPage = () => {
             ผสมการ์ด
           </button>
           <p className="text-center text-[10px] text-chalk/35">
-            กดแล้วจะมีการ์ดคว่ำ {FUSION_CANDIDATES} ใบให้เปิด — ใบแรกที่เปิดคือใบที่ได้
+            กดแล้วจะมีการ์ดคว่ำ {config.candidates} ใบให้เปิด — ใบแรกที่เปิดคือใบที่ได้
           </p>
         </section>
       </div>

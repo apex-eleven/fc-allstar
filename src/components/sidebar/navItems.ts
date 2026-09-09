@@ -31,7 +31,7 @@ export interface NavItem {
   /** true = ซ่อนจากผู้เล่นทั่วไป โผล่เฉพาะเจ้าของโปรเจค */
   ownerOnly?: boolean;
   /** เมนูนี้ขึ้นกับสวิตช์ในหน้า ADMIN ตัวไหน (ไม่ใส่ = เปิดตลอด) */
-  configKey?: 'luckyBox' | 'pass';
+  configKey?: 'luckyBox' | 'pass' | 'fusion';
 }
 
 /** โฟลเดอร์ไอคอนเมนู — เปลี่ยนรูปได้โดยทับไฟล์เดิม ไม่ต้องแก้โค้ด */
@@ -58,7 +58,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'upgrade', path: '/upgrade', label: 'Upgrade', icon: '🔨', iconUrl: `${ICON}upgrade.png`, group: 'collect', available: true },
   // ผสมการ์ดระดับเดียวกัน 3 ใบ → ได้การ์ดใหม่ระดับเดิม 1 ใบ พร้อมค่าตีบวกสุ่ม +1 ถึง +8
   // ยังไม่มีไฟล์ไอคอน — วางรูปที่ public/nav/fusion.png แล้วเติม iconUrl: `${ICON}fusion.png` ได้เลย
-  { id: 'fusion', path: '/fusion', label: 'Fusion', icon: '⚗', group: 'collect', available: true },
+  { id: 'fusion', path: '/fusion', label: 'Fusion', icon: '⚗', group: 'collect', available: true, configKey: 'fusion' },
   // กล่องสุ่มรางวัลแบบตาราง — แอดมินเปิด/ปิดได้ ปิดแล้วเมนูนี้หายไปเลย
   { id: 'lucky', path: '/lucky', label: 'Lucky Box', icon: '◆', iconUrl: `${ICON}lucky.png`, group: 'collect', available: true, configKey: 'luckyBox' },
   // แลกการ์ดที่ไม่ใช้เป็นเงิน — อยู่หมวดนี้เพราะเป็นเรื่องเศรษฐกิจการ์ด ไม่ใช่เรื่องบัญชี
@@ -85,6 +85,7 @@ export const NAV_ITEMS: NavItem[] = [
 export interface NavToggles {
   luckyBox: boolean;
   pass: boolean;
+  fusion: boolean;
 }
 
 /**

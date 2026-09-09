@@ -11,11 +11,11 @@
  * เพราะการ์ดยังคว่ำอยู่ทั้งหมด — ยังไม่มีข้อมูลให้ตัดสินใจตอนกดยกเลิก
  */
 import { useCallback, useMemo, useState } from 'react';
+import { useGameConfig } from '@/hooks/useGameConfig';
 import { usePlayers, type OwnedPlayerCard } from '@/hooks/usePlayers';
 import { useTeam } from '@/hooks/useTeam';
 import { createCardInstance } from '@/services/cardInstance';
 import {
-  FUSION_MATERIALS,
   getFusionBlockReason,
   getFusionOdds,
   getMaterialPlus,
@@ -44,6 +44,8 @@ export interface FusionOutcome {
 export const useFusion = () => {
   const { ownedCards, addCards, removeCards, addCoins, getCard } = usePlayers();
   const { team } = useTeam();
+  /** ค่าตั้งจากหน้า ADMIN → ผสมการ์ด (ยังไม่เคยตั้ง = ค่าเริ่มต้นในโค้ด) */
+  const { fusion: config } = useGameConfig();
 
   const [pickedIds, setPickedIds] = useState<string[]>([]);
   const [phase, setPhase] = useState<FusionPhase>('select');
@@ -75,9 +77,9 @@ export const useFusion = () => {
   /** ระดับที่ถูกล็อกไว้จากใบแรก — ใบที่เหลือต้องระดับนี้เท่านั้น */
   const rarity = materials.length > 0 ? materials[0].player.rarity : null;
   const materialPlus = getMaterialPlus(materials.map(({ card }) => card));
-  const odds = useMemo(() => getFusionOdds(materialPlus), [materialPlus]);
-  const cashUnlocked = materials.length === FUSION_MATERIALS && canWinCash(materialPlus);
-  const ready = materials.length === FUSION_MATERIALS;
+  const odds = useMemo(() => getFusionOdds(materialPlus, config), [config, materialPlus]);
+  const ready = materials.length === config.materials;
+  const cashUnlocked = ready && canWinCash(materialPlus, config);
 
   /** ใบนี้หย่อนลงช่องได้ไหม (ใช้ทั้งในหน้าเลือกและตอนกดยืนยัน) */
   const blockReasonOf = useCallback(
@@ -93,13 +95,13 @@ export const useFusion = () => {
           playSfx('click');
           return current.filter((id) => id !== cardId);
         }
-        if (current.length >= FUSION_MATERIALS) return current;
+        if (current.length >= config.materials) return current;
 
         playSfx('click');
         return [...current, cardId];
       });
     },
-    [],
+    [config.materials],
   );
 
   const clear = useCallback(() => {
@@ -111,15 +113,21 @@ export const useFusion = () => {
   const startFusion = useCallback(() => {
     const cards = materials.map(({ card }) => card);
 
-    if (cards.length !== FUSION_MATERIALS) {
-      setError(`ต้องเลือกการ์ดให้ครบ ${FUSION_MATERIALS} ใบ`);
+    if (cards.length !== config.materials) {
+      setError(`ต้องเลือกการ์ดให้ครบ ${config.materials} ใบ`);
+      playSfx('error');
+      return false;
+    }
+
+    if (!config.enabled) {
+      setError('ระบบผสมการ์ดปิดอยู่');
       playSfx('error');
       return false;
     }
 
     const materialRarity = getMaterialRarity(cards);
     if (!materialRarity) {
-      setError('การ์ดทั้ง 3 ใบต้องเป็นระดับเดียวกัน');
+      setError('การ์ดทุกใบต้องเป็นระดับเดียวกัน');
       playSfx('error');
       return false;
     }
@@ -130,14 +138,14 @@ export const useFusion = () => {
       return false;
     }
 
-    setCandidates(rollFusionCandidates(materialRarity, getMaterialPlus(cards)));
+    setCandidates(rollFusionCandidates(materialRarity, getMaterialPlus(cards), config));
     setOpenedIndexes([]);
     setOutcome(null);
     setError(null);
     setPhase('reveal');
     playSfx('upgradeRoll');
     return true;
-  }, [blockReasonOf, materials]);
+  }, [blockReasonOf, config, materials]);
 
   /**
    * เปิดการ์ดคว่ำหนึ่งใบ
@@ -212,6 +220,9 @@ export const useFusion = () => {
   }, []);
 
   return {
+    /** ค่าตั้งที่ใช้อยู่ — หน้าจอใช้อ่านจำนวนช่อง/เงื่อนไขเงินโดยไม่ต้องเรียก useGameConfig เอง */
+    config,
+
     /* สถานะการเลือก */
     materials,
     pickedIds,

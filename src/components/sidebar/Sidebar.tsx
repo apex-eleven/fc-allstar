@@ -20,9 +20,9 @@ interface SidebarProps {
 }
 
 export const Sidebar = ({ locked = false }: SidebarProps) => {
-  /** เมนู ADMIN โผล่เฉพาะเจ้าของโปรเจค · Lucky Box กับ Pass โผล่เมื่อแอดมินเปิดสวิตช์ไว้ */
-  const { isOwner, luckyGrid, pass } = useGameConfig();
-  const toggles = { luckyBox: luckyGrid.enabled, pass: pass.enabled };
+  /** เมนู ADMIN โผล่เฉพาะเจ้าของโปรเจค · Lucky Box / Pass / Fusion โผล่เมื่อแอดมินเปิดสวิตช์ไว้ */
+  const { isOwner, luckyGrid, pass, fusion } = useGameConfig();
+  const toggles = { luckyBox: luckyGrid.enabled, pass: pass.enabled, fusion: fusion.enabled };
 
   return (
     <aside className="hidden w-[212px] shrink-0 flex-col border-r border-white/5 bg-ink-800/90 lg:flex xl:w-[248px]">

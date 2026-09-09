@@ -52,6 +52,8 @@ export const CONFIG_DOCS = {
   squadBonus: 'squadBonus',
   /** ทีมจำลองในตารางอันดับ: จำนวน ช่วงค่าพลัง และค่าที่ล็อกรายตัว (ADMIN → ทีมจำลอง) */
   bots: 'bots',
+  /** ผสมการ์ด: จำนวนวัสดุ ตารางโอกาส +1→+8 และเงื่อนไขเงินโบนัส (ADMIN → ผสมการ์ด) */
+  fusion: 'fusion',
 } as const;
 
 const COLLECTION = 'config';
