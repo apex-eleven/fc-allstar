@@ -54,6 +54,8 @@ export const CONFIG_DOCS = {
   bots: 'bots',
   /** ผสมการ์ด: จำนวนวัสดุ ตารางโอกาส +1→+8 และเงื่อนไขเงินโบนัส (ADMIN → ผสมการ์ด) */
   fusion: 'fusion',
+  /** ล็อกการ์ด: รายชื่อนักเตะที่ห้ามหาได้จากทุกระบบจนกว่าจะปลดล็อก (ADMIN → ล็อกการ์ด) */
+  cardLock: 'cardLock',
 } as const;
 
 const COLLECTION = 'config';

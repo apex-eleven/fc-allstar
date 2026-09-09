@@ -6,11 +6,10 @@
  * และรายการดีลมาจากแอดมินล้วน ๆ ไม่มีการหมุนเวียนอัตโนมัติ
  */
 import { useCallback, useMemo, useState } from 'react';
-import { getPlayerById } from '@/data/players';
 import { useGameConfig } from '@/hooks/useGameConfig';
 import { usePlayers, type OwnedPlayerCard } from '@/hooks/usePlayers';
 import { useTeam } from '@/hooks/useTeam';
-import { cardMatchesRequirement } from '@/services/exchangeDeals';
+import { cardMatchesRequirement, getDealRewardPlayers } from '@/services/exchangeDeals';
 import { playSfx } from '@/services/sound';
 import type { PlayerCard as PlayerCardData, ExchangeDeal } from '@/types/card';
 import type { Player } from '@/types/player';
@@ -73,12 +72,11 @@ export const useCardExchange = () => {
         return false;
       }
 
-      const players = deal.rewardPlayerIds
-        .map((id) => getPlayerById(id))
-        .filter((entry): entry is Player => Boolean(entry));
+      // ตัดใบที่แอดมินล็อกไว้ออกก่อนเสมอ — ล็อกทั้งดีลก็คือแลกไม่ได้ ไม่ใช่ได้ของว่าง
+      const players = getDealRewardPlayers(deal);
 
       if (players.length === 0) {
-        setError('ไม่พบข้อมูลนักเตะรางวัลของดีลนี้');
+        setError('รางวัลของดีลนี้ยังไม่เปิดให้แลกในตอนนี้');
         playSfx('error');
         return false;
       }

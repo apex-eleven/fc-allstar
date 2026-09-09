@@ -14,6 +14,7 @@
  * เป็น pure function ล้วน ห้าม import React หรือแตะ state
  */
 import { getPlayerById } from '@/data/players';
+import { isPlayerLocked } from '@/services/cardLock';
 import { getExchangePrice } from '@/services/exchange';
 import type { PointsExchangeConfig, PointsExchangeItem } from '@/types/card';
 
@@ -117,9 +118,12 @@ export const normalizePointsExchange = (
 export const isExpired = (item: PointsExchangeItem, now: number = Date.now()): boolean =>
   typeof item.expiresAt === 'string' && new Date(item.expiresAt).getTime() <= now;
 
-/** ผู้เล่นควรเห็นใบนี้ในร้านไหม (เปิดอยู่ + ยังไม่หมดเวลา) */
+/**
+ * ผู้เล่นควรเห็นใบนี้ในร้านไหม (เปิดอยู่ + ยังไม่หมดเวลา + ไม่โดนล็อก)
+ * ใบที่แอดมินล็อกไว้จะหายจากร้านทันทีโดยไม่ต้องไปลบออกจากรายการเอง
+ */
 export const isItemLive = (item: PointsExchangeItem, now: number = Date.now()): boolean =>
-  item.enabled && !isExpired(item, now);
+  item.enabled && !isExpired(item, now) && !isPlayerLocked(item.playerId);
 
 /** เหลืออีกกี่วินาทีก่อนใบนี้หายจากร้าน — null = ไม่มีกำหนด */
 export const secondsUntilExpiry = (

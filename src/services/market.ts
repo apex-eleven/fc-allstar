@@ -24,6 +24,7 @@
  * ห้ามตั้ง priceMarkup ต่ำกว่า 1 เด็ดขาด (มีเทสกันไว้แล้ว)
  */
 import { PLAYERS } from '@/data/players';
+import { isPlayerLocked } from '@/services/cardLock';
 import { DEFAULT_CARD_CASH, getCardCashValue } from '@/services/cardCash';
 import { getDayKey, getDayStart } from '@/services/league';
 import { getBasePlayer } from '@/services/playerAttributes';
@@ -304,6 +305,7 @@ export const getMarketPool = (
       (player) =>
         !excluded.has(player.id) &&
         !blocked.has(player.id) &&
+        !isPlayerLocked(player.id) &&
         (!allowed || allowed.has(player.id)) &&
         player.ovr >= config.minOvr &&
         player.ovr <= config.maxOvr,

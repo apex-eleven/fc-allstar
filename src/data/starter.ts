@@ -24,7 +24,7 @@ export const STARTING_UPGRADE_POINTS = 500;
  * รายชื่อนักเตะที่แถมให้ตอนสมัคร
  * ครอบคลุม: GK×2, CB×3, LB×1, RB×1, CDM×1, CM×2, CAM×1, LW×1, RW×1, RM×1, ST×2
  */
-const STARTER_PLAYER_IDS = [
+export const STARTER_PLAYER_IDS = [
   'p006', // GK
   'p016', // GK สำรอง
   'p004', // CB

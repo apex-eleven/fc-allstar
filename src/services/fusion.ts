@@ -24,6 +24,7 @@
 import { PLAYERS } from '@/data/players';
 import { MAX_UPGRADE } from '@/data/upgradeConfig';
 import { getCardUpgrade, isCardLocked } from '@/services/cardInstance';
+import { isPlayerLocked } from '@/services/cardLock';
 import { getBasePlayer } from '@/services/playerAttributes';
 import type { CardInstance } from '@/types/card';
 import type { FusionConfig } from '@/types/fusion';
@@ -225,7 +226,7 @@ export const FUSION_BLOCK_TEXT: Record<FusionBlockReason, string> = {
 
 /** นักเตะทุกคนที่ผสมออกมาได้ในระดับนี้ */
 export const getFusionPool = (rarity: Rarity): Player[] =>
-  PLAYERS.filter((player) => player.rarity === rarity);
+  PLAYERS.filter((player) => player.rarity === rarity && !isPlayerLocked(player.id));
 
 /** ผลที่ซ่อนอยู่ในการ์ดคว่ำหนึ่งใบ */
 export interface FusionCandidate {

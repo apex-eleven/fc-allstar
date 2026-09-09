@@ -8,6 +8,7 @@
  * เป็น pure function ล้วน ห้าม import React หรือแตะ state
  */
 import { PLAYERS } from '@/data/players';
+import { isPlayerLocked } from '@/services/cardLock';
 import { getExchangePrice } from '@/services/exchange';
 import type { Player, Rarity } from '@/types/player';
 import { seededShuffle } from '@/utils/seededRandom';
@@ -63,7 +64,10 @@ export const getRotationPlayers = (
 ): Player[] =>
   ROTATION_RARITIES.flatMap((rarity) =>
     seededShuffle(
-      PLAYERS.filter((player) => player.rarity === rarity && !excluded.has(player.id)),
+      PLAYERS.filter(
+        (player) =>
+          player.rarity === rarity && !excluded.has(player.id) && !isPlayerLocked(player.id),
+      ),
       `exchange:${rotationIndex}:${rarity}`,
     ).slice(0, PER_RARITY_LIMIT),
   ).sort((a, b) => getExchangePrice(b) - getExchangePrice(a) || b.ovr - a.ovr);

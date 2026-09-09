@@ -78,7 +78,7 @@ export const GiftsProvider = ({ children }: { children: ReactNode }) => {
       if (coins > 0) addCoins(coins);
       if (points > 0) addPoints(points);
       if (upgrade > 0) addUpgradePoints(upgrade);
-      if (cards.length > 0) addCards(cards);
+      if (cards.length > 0) addCards(cards, { ignoreLock: true });
 
       /*
        * รางวัลแบบใหม่ (ไอเทม · ตั๋วพาส · การ์ดพร้อมค่าบวก ฯลฯ)
@@ -93,7 +93,9 @@ export const GiftsProvider = ({ children }: { children: ReactNode }) => {
           addPassTickets,
           addUpgradeItems,
           addCard: (playerId, upgradeLevel) =>
-            addCards([createCardInstance({ playerId, ownerId: uid, upgrade: upgradeLevel })]),
+            addCards([createCardInstance({ playerId, ownerId: uid, upgrade: upgradeLevel })], {
+              ignoreLock: true,
+            }),
         });
       }
 

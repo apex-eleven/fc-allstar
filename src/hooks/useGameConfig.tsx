@@ -52,6 +52,7 @@ import { normalizePacks } from '@/services/packConfig';
 import { normalizePass } from '@/services/pass';
 import { normalizeCardCash } from '@/services/cardCash';
 import { normalizeFusion } from '@/services/fusion';
+import { normalizeCardLock, setCardLock } from '@/services/cardLock';
 import { normalizeMarketConfig } from '@/services/market';
 import { normalizeLoginBonus } from '@/services/loginBonus';
 import { normalizePointsExchange } from '@/services/pointsExchange';
@@ -59,6 +60,7 @@ import { isOwnerUsername } from '@/services/rankRewards';
 import type { BotConfig } from '@/types/bot';
 import type { CardCashConfig } from '@/types/cardCash';
 import type { FusionConfig } from '@/types/fusion';
+import type { CardLockConfig } from '@/types/cardLock';
 import type { MarketConfig } from '@/types/market';
 import type { LoginBonusConfig } from '@/types/loginBonus';
 import type { CardPack, ExchangeDeal, PointsExchangeConfig } from '@/types/card';
@@ -148,6 +150,10 @@ interface GameConfigContextValue {
   saveMarket: (config: MarketConfig) => Promise<string | null>;
   /** บันทึกค่าตั้งร้านไอเทม คืนข้อความ error (null = สำเร็จ) */
   saveItemShop: (config: UpgradeItemShopConfig) => Promise<string | null>;
+  /** รายชื่อนักเตะที่ถูกล็อก ห้ามหาได้จากทุกระบบ (ยังไม่เคยตั้ง = ไม่ล็อกใครเลย) */
+  cardLock: CardLockConfig;
+  /** บันทึกรายชื่อที่ล็อก คืนข้อความ error (null = สำเร็จ) */
+  saveCardLock: (config: CardLockConfig) => Promise<string | null>;
   /** ค่าตั้งระบบผสมการ์ด (ยังไม่เคยตั้ง = ค่าเริ่มต้นในโค้ด) */
   fusion: FusionConfig;
   /** บันทึกค่าตั้งระบบผสมการ์ด คืนข้อความ error (null = สำเร็จ) */
@@ -217,6 +223,8 @@ export const GameConfigProvider = ({ children }: { children: ReactNode }) => {
   const [serverMarket, setServerMarket] = useState<Partial<MarketConfig> | null>(null);
   /** ค่าตั้งระบบผสมการ์ดที่แอดมินตั้ง — null = ยังไม่เคยตั้ง ใช้ค่าเริ่มต้นในโค้ด */
   const [serverFusion, setServerFusion] = useState<Partial<FusionConfig> | null>(null);
+  /** รายชื่อการ์ดที่ล็อกไว้ — null = ยังไม่เคยตั้ง (ไม่ล็อกใครเลย) */
+  const [serverCardLock, setServerCardLock] = useState<Partial<CardLockConfig> | null>(null);
 
   useEffect(() => {
     if (!ONLINE) return undefined;
@@ -299,7 +307,13 @@ export const GameConfigProvider = ({ children }: { children: ReactNode }) => {
 
     const stopFusion = watchConfigDoc<Partial<FusionConfig>>(CONFIG_DOCS.fusion, setServerFusion);
 
+    const stopCardLock = watchConfigDoc<Partial<CardLockConfig>>(
+      CONFIG_DOCS.cardLock,
+      setServerCardLock,
+    );
+
     return () => {
+      stopCardLock();
       stopFusion();
       stopBots();
       stopMarket();
@@ -482,6 +496,11 @@ export const GameConfigProvider = ({ children }: { children: ReactNode }) => {
     [write],
   );
 
+  const saveCardLock = useCallback(
+    (next: CardLockConfig) => write(CONFIG_DOCS.cardLock, { ...normalizeCardLock(next) }),
+    [write],
+  );
+
   /** ค่าตั้งตลาดที่ใช้จริง — ของเซิร์ฟเวอร์ต้องผ่านการตรวจก่อนเสมอ */
   const market = useMemo(() => normalizeMarketConfig(serverMarket), [serverMarket]);
 
@@ -492,6 +511,19 @@ export const GameConfigProvider = ({ children }: { children: ReactNode }) => {
 
   /** ค่าตั้งระบบผสมการ์ดที่ใช้จริง — บีบค่าจากเซิร์ฟเวอร์ให้อยู่ในกรอบก่อนเสมอ */
   const fusion = useMemo(() => normalizeFusion(serverFusion), [serverFusion]);
+
+  /** รายชื่อที่ล็อกจริง — บีบค่าจากเซิร์ฟเวอร์ให้อยู่ในกรอบก่อนเสมอ */
+  const cardLock = useMemo(() => normalizeCardLock(serverCardLock), [serverCardLock]);
+
+  /*
+   * ป้อนรายชื่อเข้าทะเบียนระดับโมดูลด้วย ไม่ใช่แค่ส่งผ่าน context
+   * เพราะ service ที่ไม่ได้อยู่ในต้นไม้ React (cardPack, market, exchangeRotation)
+   * เรียก isPlayerLocked ตรง ๆ และใช้ hook ไม่ได้ — ถ้าไม่ทำตรงนี้ การ์ดที่ล็อกไว้
+   * จะยังโผล่ในซองและในตลาดตามปกติ
+   */
+  useEffect(() => {
+    setCardLock(cardLock);
+  }, [cardLock]);
 
   /**
    * ตารางตีบวกที่ใช้จริง — ของเซิร์ฟเวอร์ต้องผ่านการตรวจก่อน
@@ -591,6 +623,8 @@ export const GameConfigProvider = ({ children }: { children: ReactNode }) => {
       saveBots,
       fusion,
       saveFusion,
+      cardLock,
+      saveCardLock,
       isOwner,
       uid,
       saveLadder,
@@ -631,6 +665,8 @@ export const GameConfigProvider = ({ children }: { children: ReactNode }) => {
       saveBots,
       fusion,
       saveFusion,
+      cardLock,
+      saveCardLock,
       saveAnnouncement,
       saveBans,
       saveExchangeDeals,

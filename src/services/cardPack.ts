@@ -10,6 +10,7 @@
  */
 import { CARD_PACKS } from '@/data/cards';
 import { PLAYERS } from '@/data/players';
+import { isPlayerLocked } from '@/services/cardLock';
 import type { CardPack, PackOpenResult, PlayerCard as PlayerCardData } from '@/types/card';
 import { RARITY_ORDER, type Player, type Rarity } from '@/types/player';
 import { createId, pickRandom } from '@/utils/helpers';
@@ -30,8 +31,12 @@ export const getPackPlayers = (pack: CardPack): Player[] => {
   const rarities = new Set(getPackRarities(pack));
   const allowed = pack.pool ? new Set(pack.pool) : null;
 
+  // การ์ดที่แอดมินล็อกไว้ถูกตัดตรงนี้จุดเดียว จึงหายทั้งจากการสุ่มและจากหน้า "ดูนักเตะในซอง"
   return PLAYERS.filter(
-    (player) => rarities.has(player.rarity) && (!allowed || allowed.has(player.id)),
+    (player) =>
+      rarities.has(player.rarity) &&
+      (!allowed || allowed.has(player.id)) &&
+      !isPlayerLocked(player.id),
   ).sort((a, b) => b.ovr - a.ovr);
 };
 
@@ -103,7 +108,7 @@ export const openPack = (pack: CardPack, packCount = 1): PackOpenResult => {
   const openedAt = new Date().toISOString();
   const available = getPackPlayers(pack);
   // กันกรณีตั้งค่าซองผิดจนไม่มีนักเตะเลย — ยังเปิดได้ ไม่ให้เกมค้าง
-  const fallbackPool = available.length > 0 ? available : PLAYERS;
+  const fallbackPool = available.length > 0 ? available : PLAYERS.filter((player) => !isPlayerLocked(player.id));
 
   /*
    * ซื้อทีละหลายซอง = สุ่มทีละใบเหมือนเปิดทีละซองทุกประการ

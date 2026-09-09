@@ -146,7 +146,7 @@ export const GiftPanel = () => {
         if (points > 0) addPoints(points);
         if (upgradePoints > 0) addUpgradePoints(upgradePoints);
         const cards = buildCards();
-        if (cards.length > 0) addCards(cards);
+        if (cards.length > 0) addCards(cards, { ignoreLock: true });
 
         grantRewards(validRewards, {
           addCoins,
@@ -155,7 +155,9 @@ export const GiftPanel = () => {
           addPassTickets,
           addUpgradeItems,
           addCard: (playerId, upgradeLevel) =>
-            addCards([createCardInstance({ playerId, ownerId: account?.id, upgrade: upgradeLevel })]),
+            addCards([createCardInstance({ playerId, ownerId: account?.id, upgrade: upgradeLevel })], {
+              ignoreLock: true,
+            }),
         });
 
         playSfx('rankUp');

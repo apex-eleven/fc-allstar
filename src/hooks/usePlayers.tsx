@@ -26,6 +26,7 @@ import { playSfx } from '@/services/sound';
 import { allMissionsDone, buildDailyMissions, missionCoinTotal } from '@/services/missions';
 import { canLevelUp, MAX_PLUS } from '@/services/upgrade';
 import { isCardLocked, isStrongEnoughMaterial, LOCK_LIMIT } from '@/services/cardInstance';
+import { isPlayerLocked } from '@/services/cardLock';
 import {
   clampStreak,
   getFinalSuccessRate,
@@ -97,7 +98,12 @@ interface InventoryContextValue {
   /** แต้มสะสมจากการย่อยการ์ด */
   points: number;
   /** เพิ่มการ์ดใหม่เข้าคลัง (ใช้ตอนเปิดซอง) */
-  addCards: (cards: PlayerCardData[]) => void;
+  /**
+   * เพิ่มการ์ดเข้าคลัง
+   * ด่านสุดท้ายของระบบล็อกการ์ด: ใบที่แอดมินล็อกไว้จะถูกตัดทิ้งตรงนี้เสมอ
+   * ใส่ { ignoreLock: true } เฉพาะของขวัญที่แอดมินสั่งเองเท่านั้น
+   */
+  addCards: (cards: PlayerCardData[], options?: { ignoreLock?: boolean }) => void;
   /** เอาการ์ดออกจากคลังตรง ๆ โดยไม่ได้อะไรตอบแทน (ใช้ตอนจ่ายการ์ดแลกดีลของแอดมิน) */
   removeCards: (cardIds: string[]) => void;
   /** หักเหรียญ คืน false ถ้าเงินไม่พอ */
@@ -278,9 +284,28 @@ export const InventoryProvider = ({ children }: { children: ReactNode }) => {
     return () => window.clearInterval(id);
   }, []);
 
-  const addCards = useCallback((newCards: PlayerCardData[]) => {
-    setCards((current) => [...current, ...newCards]);
-  }, []);
+  const addCards = useCallback(
+    (newCards: PlayerCardData[], options?: { ignoreLock?: boolean }) => {
+      /*
+       * กรองที่นี่จุดเดียว ทุกระบบที่แจกการ์ด (ซอง ผสม ตลาด ร้านแลก กล่องสุ่ม พาส
+       * รางวัลอันดับ ฯลฯ) จึงถูกคุมพร้อมกัน รวมถึงระบบที่จะเพิ่มทีหลังด้วย
+       * ระบบต้นทางกรองพูลของตัวเองอยู่แล้ว ตรงนี้เป็นตาข่ายกันหลุดชั้นสุดท้าย
+       */
+      const allowed = options?.ignoreLock
+        ? newCards
+        : newCards.filter((card) => !isPlayerLocked(card.playerId));
+
+      if (allowed.length < newCards.length) {
+        console.warn('[cardLock] ตัดการ์ดที่ถูกล็อกออกจากรางวัล', {
+          dropped: newCards.length - allowed.length,
+        });
+      }
+
+      if (allowed.length === 0) return;
+      setCards((current) => [...current, ...allowed]);
+    },
+    [],
+  );
 
   /**
    * เอาการ์ดออกจากคลังตรง ๆ ไม่ได้แต้ม/เหรียญตอบแทน (ต่างจาก salvageCards)

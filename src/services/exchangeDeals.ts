@@ -10,6 +10,7 @@
  * ข้อมูลที่มาจากเซิร์ฟเวอร์ไม่เชื่อทั้งดุ้น — normalizeExchangeDeals บีบทุกค่าให้อยู่ในกรอบก่อนใช้
  */
 import { getPlayerById, PLAYERS } from '@/data/players';
+import { filterUnlockedPlayers } from '@/services/cardLock';
 import type { ExchangeDeal, ExchangeRequirement } from '@/types/card';
 import type { Player, Position } from '@/types/player';
 
@@ -148,3 +149,16 @@ export const normalizeExchangeDeals = (raw?: Array<Partial<ExchangeDeal>> | null
     return { ...deal, id };
   });
 };
+
+/**
+ * นักเตะรางวัลของดีลนี้ที่ยัง "หาได้" จริง — ตัดใบที่แอดมินล็อกไว้ออก
+ *
+ * ใช้ทั้งตอนโชว์รางวัลบนหน้าร้านและตอนกดแลก จะได้ไม่มีกรณีที่ผู้เล่นเห็นใบหนึ่ง
+ * แต่จ่ายการ์ดไปแล้วได้อีกใบ — ถ้าตัดแล้วไม่เหลือเลย ให้ถือว่าดีลนี้แลกไม่ได้
+ */
+export const getDealRewardPlayers = (deal: ExchangeDeal): Player[] =>
+  filterUnlockedPlayers(
+    deal.rewardPlayerIds
+      .map((id) => getPlayerById(id))
+      .filter((player): player is Player => Boolean(player)),
+  );
