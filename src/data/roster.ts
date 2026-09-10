@@ -356,6 +356,11 @@ export const ROSTER: RosterEntry[] = [
   { file: 'p306.gif', rarity: 'common', name: 'OYARZABAL', position: 'ST', ovr: 115 },
   { file: 'p307.gif', rarity: 'mythical', name: 'MESSI', position: 'RW', ovr: 123 },
 
-  /* ── NUMERO 10  ─────────────────────────────────────────*/
+  /* ── 3 YEAR  ─────────────────────────────────────────*/
   { file: 'p308.png', rarity: 'mythical', name: 'RONALDO', position: 'ST', ovr: 124 },
+  { file: 'p309.png', rarity: 'mythical', name: 'CARLOS ALBERTO', position: 'RB', ovr: 123 },
+  { file: 'p310.png', rarity: 'mythical', name: 'NESTA', position: 'CB', ovr: 123 },
+  { file: 'p311.png', rarity: 'mythical', name: 'EUSEBIO', position: 'ST', ovr: 123 },
+  { file: 'p312.png', rarity: 'mythical', name: 'FERDINAND', position: 'ST', ovr: 123 },
+  { file: 'p313.png', rarity: 'mythical', name: 'GULLIT', position: 'ST', ovr: 123 },
 ];
