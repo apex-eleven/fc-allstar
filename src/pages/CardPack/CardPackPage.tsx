@@ -2,10 +2,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { PackCard } from '@/components/pack/PackCard';
 import { PackRevealOverlay, type RevealEntry } from '@/components/pack/PackRevealOverlay';
-import { getPlayerById } from '@/data/players';
 import { useCardPack } from '@/hooks/useCardPack';
 import { getPackById } from '@/services/cardPack';
 import { activePacks } from '@/services/packConfig';
+import { getEffectivePlayer } from '@/services/playerAttributes';
 import { formatNumber } from '@/utils/helpers';
 
 export const CardPackPage = () => {
@@ -31,7 +31,12 @@ export const CardPackPage = () => {
   const revealed: RevealEntry[] = useMemo(
     () =>
       (lastResult?.cards ?? []).flatMap((card) => {
-        const player = getPlayerById(card.playerId);
+        /*
+         * ใช้ getEffectivePlayer ไม่ใช่ getPlayerById เพราะซองที่ตั้งให้ออกการ์ด
+         * พร้อมค่าตีบวก การ์ดใบนั้นมีค่าพลังจริงสูงกว่าใบต้นแบบ
+         * ถ้าโชว์ค่าต้นแบบ ผู้เล่นจะเห็น OVR ไม่ตรงกับที่ได้จริงในคลัง
+         */
+        const player = getEffectivePlayer(card);
         return player ? [{ card, player }] : [];
       }),
     [lastResult],

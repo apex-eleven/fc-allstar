@@ -27,6 +27,7 @@ import {
 import { alpha, RARITY_FX, RARITY_RANK } from '@/components/pack/rarityFx';
 import { PlayerCard } from '@/components/player/PlayerCard';
 import { playCharge, playReveal, playSfx } from '@/services/sound';
+import { getCardUpgrade } from '@/services/cardInstance';
 import type { PlayerCard as PlayerCardData } from '@/types/card';
 import type { Player } from '@/types/player';
 import { cn, nationCode } from '@/utils/helpers';
@@ -175,22 +176,30 @@ export const PackRevealOverlay = ({
             className="mt-1 font-mono text-sm"
             style={{ color: RARITY_FX[best.player.rarity].color }}
           >
-            ดีที่สุด: {best.player.name} · OVR {best.player.ovr}
+            ดีที่สุด: {best.player.name}
+            {getCardUpgrade(best.card) > 0 && ` +${getCardUpgrade(best.card)}`} · OVR{' '}
+            {best.player.ovr}
           </p>
         </div>
 
         <div className="flex max-h-[55vh] flex-wrap items-start justify-center gap-4 overflow-y-auto">
-          {ordered.map(({ card, player }) => (
-            <div key={card.id} className="text-center">
-              <PlayerCard player={player} size="md" />
-              <p
-                className="mt-1 font-mono text-[9px] uppercase tracking-wider"
-                style={{ color: RARITY_FX[player.rarity].color }}
-              >
-                {RARITY_FX[player.rarity].label}
-              </p>
-            </div>
-          ))}
+          {ordered.map(({ card, player }) => {
+            // ส่ง level เข้าไปด้วย PlayerCard ถึงจะติดป้าย +N ให้ที่มุมการ์ด
+            const plus = getCardUpgrade(card);
+
+            return (
+              <div key={card.id} className="text-center">
+                <PlayerCard player={player} size="md" level={card.level} />
+                <p
+                  className="mt-1 font-mono text-[9px] uppercase tracking-wider"
+                  style={{ color: RARITY_FX[player.rarity].color }}
+                >
+                  {RARITY_FX[player.rarity].label}
+                  {plus > 0 && <span className="ml-1 text-gold">+{plus}</span>}
+                </p>
+              </div>
+            );
+          })}
         </div>
 
         <button
@@ -288,7 +297,7 @@ export const PackRevealOverlay = ({
             className="relative my-4 animate-walkout-in"
             style={{ filter: `drop-shadow(0 0 34px ${alpha(fx.color, 0.65)})` }}
           >
-            <PlayerCard player={entry.player} size="lg" />
+            <PlayerCard player={entry.player} size="lg" level={entry.card.level} />
           </div>
 
           <div
@@ -296,7 +305,12 @@ export const PackRevealOverlay = ({
             className="relative animate-rise-in text-center"
             style={{ animationDelay: '520ms', opacity: 0 }}
           >
-            <p className="font-display text-2xl">{entry.player.name}</p>
+            <p className="font-display text-2xl">
+              {entry.player.name}
+              {getCardUpgrade(entry.card) > 0 && (
+                <span className="ml-2 text-gold">+{getCardUpgrade(entry.card)}</span>
+              )}
+            </p>
             <p className="mt-1 font-mono text-xs text-chalk/60">
               {entry.player.position} · OVR {entry.player.ovr} · {entry.player.club} ·{' '}
               {nationCode(entry.player.nation)}
