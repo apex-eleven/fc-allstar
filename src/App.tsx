@@ -30,6 +30,7 @@ import { CardPackPage } from '@/pages/CardPack/CardPackPage';
 import { ExchangePage } from '@/pages/Exchange/ExchangePage';
 import { ExchangeCardPage } from '@/pages/ExchangeCard/ExchangeCardPage';
 import { FusionPage } from '@/pages/Fusion/FusionPage';
+import { RedeemPage } from '@/pages/Redeem/RedeemPage';
 import { InventoryPage } from '@/pages/Inventory/InventoryPage';
 import { LoginBonusPage } from '@/pages/LoginBonus/LoginBonusPage';
 import { LuckyBoxPage } from '@/pages/Lucky/LuckyBoxPage';
@@ -91,6 +92,8 @@ const GameRoutes = () => {
                       <Route path="upgrade" element={<UpgradePage />} />
                       {/* ผสมการ์ดระดับเดียวกัน 3 ใบ → การ์ดใหม่ 1 ใบ */}
                       <Route path="fusion" element={<FusionPage />} />
+                      {/* กรอกโค้ดรับของจากกิจกรรม */}
+                      <Route path="redeem" element={<RedeemPage />} />
                       <Route path="settings" element={<SettingsPage />} />
                       {/* หน้าผู้ดูแล — คนที่ไม่ใช่เจ้าของเปิดเข้ามาจะเห็นแค่ข้อความปฏิเสธ */}
                       <Route path="admin" element={<AdminPage />} />

@@ -70,6 +70,8 @@ export const NAV_ITEMS: NavItem[] = [
   /* ── ซีซัน & กิจกรรม ── */
   // รางวัลล็อกอินรายสัปดาห์/รายเดือน — แอดมินตั้งของรางวัลได้ทุกช่อง
   { id: 'login-bonus', path: '/login-bonus', label: 'Login Bonus', icon: '📅', group: 'season', available: true },
+  // กรอกโค้ดจากกิจกรรม — เปิดตลอด ไม่มีสวิตช์ปิด เพราะโค้ดที่แจกไปแล้วต้องรับได้เสมอ
+  { id: 'redeem', path: '/redeem', label: 'Redeem Code', icon: '🎟', group: 'season', available: true },
   // พาสประจำซีซัน — แอดมินเปิด/ปิดได้ ปิดแล้วเมนูนี้หายไปเลย
   { id: 'pass', path: '/pass', label: 'Pass', icon: '★', group: 'season', available: true, configKey: 'pass' },
   { id: 'events', path: '/events', label: 'Events', icon: '★', iconUrl: `${ICON}events.png`, group: 'season', available: false },

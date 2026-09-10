@@ -18,6 +18,8 @@ import { UpgradeConfigPanel } from '@/components/admin/UpgradeConfigPanel';
 import { CardCashPanel } from '@/components/admin/CardCashPanel';
 import { FusionPanel } from '@/components/admin/FusionPanel';
 import { CardLockPanel } from '@/components/admin/CardLockPanel';
+import { ChampionBannerPanel } from '@/components/admin/ChampionBannerPanel';
+import { RedeemCodePanel } from '@/components/admin/RedeemCodePanel';
 import { LoginBonusPanel } from '@/components/admin/LoginBonusPanel';
 import { UpgradeItemShopPanel } from '@/components/admin/UpgradeItemShopPanel';
 import { ExchangeDealsPanel } from '@/components/admin/ExchangeDealsPanel';
@@ -52,6 +54,7 @@ const TABS = [
   { id: 'loginBonus', label: 'รางวัลล็อกอิน', icon: '📅' },
   { id: 'cardCash', label: 'แลกการ์ดเป็นเงิน', icon: '💰' },
   { id: 'gift', label: 'เสกของ', icon: '🎁' },
+  { id: 'redeem', label: 'โค้ดรับของ', icon: '🎟' },
   { id: 'packs', label: 'ซองการ์ด', icon: '▣' },
   { id: 'exchange', label: 'แลกเปลี่ยนการ์ด', icon: '⇄' },
   { id: 'pointsExchange', label: 'แลกด้วยแต้ม', icon: '💠' },
@@ -62,6 +65,7 @@ const TABS = [
   { id: 'squadBonus', label: 'ทีมพิเศษ', icon: '🛡️' },
   { id: 'rewards', label: 'รางวัลอันดับ', icon: '🏆' },
   { id: 'ladder', label: 'ตารางอันดับ & ซีซัน', icon: '⭐' },
+  { id: 'championBanner', label: 'แบนเนอร์อันดับ 1', icon: '👑' },
   { id: 'bots', label: 'ทีมจำลอง', icon: '🤖' },
   { id: 'announcement', label: 'ประกาศ', icon: '📢' },
   { id: 'news', label: 'ข่าวหน้าแรก', icon: '📰' },
@@ -133,6 +137,8 @@ export const AdminPage = () => {
       {tab === 'itemShop' && <UpgradeItemShopPanel />}
       {tab === 'fusion' && <FusionPanel />}
       {tab === 'cardLock' && <CardLockPanel />}
+      {tab === 'championBanner' && <ChampionBannerPanel />}
+      {tab === 'redeem' && <RedeemCodePanel />}
       {tab === 'loginBonus' && <LoginBonusPanel />}
       {tab === 'cardCash' && <CardCashPanel />}
       {tab === 'gift' && <GiftPanel />}

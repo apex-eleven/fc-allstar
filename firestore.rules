@@ -11,6 +11,8 @@ rules_version = '2';
  *     ทุกคนอ่านได้ เขียนได้เฉพาะเจ้าของโปรเจค (ดู isProjectOwner ข้างล่าง)
  *   • gifts/{uid}    — กล่องของขวัญ เจ้าของโปรเจคหย่อนของให้ผู้เล่น เจ้าของกล่องรับแล้วลบทิ้ง
  *   • chat/{msgId}   — Live แชทห้องรวม ทุกคนอ่านได้ พิมพ์ได้เฉพาะในนามตัวเอง
+ *   • redeemCodes/{code} — โค้ดรับของ ทุกคนอ่านได้ แอดมินสร้าง/ลบ
+ *     ผู้เล่นแก้ได้แค่ตัวนับ uses และรับซ้ำไม่ได้เพราะใบ claims สร้างได้ครั้งเดียว
  *
  * นำไปใช้: Firebase Console → Firestore Database → Rules → วางทับ → Publish
  * หรือใช้ CLI: firebase deploy --only firestore:rules
@@ -330,6 +332,55 @@ service cloud.firestore {
              && request.resource.data.seasonDays >= 1
              && request.resource.data.seasonDays <= 365
            ));
+    }
+
+    /*
+     * ═══════════════════════════════════════════════════════════
+     *  โค้ดรับของ (redeem code)
+     * ═══════════════════════════════════════════════════════════
+     * redeemCodes/{code}              — ตัวโค้ดกับของรางวัล
+     * redeemCodes/{code}/claims/{uid} — ใบยืนยันว่าคนนี้รับไปแล้ว
+     *
+     * ที่ต้องคิดให้ดีคือ "ผู้เล่นต้องบวกตัวนับ uses ได้ แต่ต้องแก้อย่างอื่นไม่ได้เลย"
+     * กฎด้านล่างจึงบังคับสามอย่างพร้อมกัน: แตะได้เฉพาะช่อง uses · บวกได้ทีละ 1 เท่านั้น ·
+     * และต้องยังไม่เกินโควตา/ไม่หมดอายุ/ยังเปิดอยู่ ณ เวลาที่เขียน
+     *
+     * เงื่อนไขพวกนี้ถูกเช็คที่หน้าเว็บด้วย (services/redeemCode.ts) แต่ตรงนั้นเป็นแค่
+     * การบอกผู้เล่นให้ตรงจุด ด่านที่กันของจริงคือกฎชุดนี้ — แก้โค้ดหน้าเว็บแล้วข้ามไม่ได้
+     *
+     * ค่าเพดานต้องตรงกับ REDEEM_MAX_REWARDS ใน src/services/redeemCode.ts
+     */
+    match /redeemCodes/{code} {
+      // ผู้เล่นต้องอ่านได้ ไม่งั้นตรวจโค้ดที่พิมพ์มาไม่ได้
+      allow read: if isSignedIn();
+
+      allow create, delete: if isProjectOwner();
+
+      allow update: if isProjectOwner()
+        || (
+          isSignedIn()
+          && notBanned()
+          // แตะได้ช่องเดียวคือตัวนับ และต้องบวกทีละหนึ่งเท่านั้น
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uses'])
+          && request.resource.data.uses == resource.data.uses + 1
+          // สามเงื่อนไขของโค้ด ตรวจซ้ำที่เซิร์ฟเวอร์ ณ วินาทีที่เขียนจริง
+          && resource.data.enabled == true
+          && (resource.data.maxUses == 0 || resource.data.uses < resource.data.maxUses)
+          && (resource.data.expiresAtMs == 0 || request.time.toMillis() < resource.data.expiresAtMs)
+        );
+    }
+
+    match /redeemCodes/{code}/claims/{uid} {
+      allow read: if isOwner(uid) || isProjectOwner();
+
+      /*
+       * create อย่างเดียวคือหัวใจของการกันรับซ้ำ
+       * Firestore ให้ create ผ่านเฉพาะตอนเอกสารยังไม่มี การกดรับรอบสองจึงกลายเป็น
+       * update และถูกปฏิเสธเสมอ ไม่ว่าจะกดรัวจากกี่แท็บพร้อมกันก็ตาม
+       */
+      allow create: if isOwner(uid) && notBanned();
+      allow update: if false;
+      allow delete: if isProjectOwner();
     }
 
     /**
