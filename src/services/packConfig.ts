@@ -9,6 +9,7 @@
  */
 import { CARD_PACKS } from '@/data/cards';
 import { getPlayerById } from '@/data/players';
+import { normalizePackUpgradeOdds } from '@/services/cardPack';
 import type { CardPack, PackTier } from '@/types/card';
 import { RARITY_ORDER, type Rarity } from '@/types/player';
 
@@ -141,6 +142,8 @@ const normalizePack = (raw: Partial<CardPack>, index: number): CardPack => {
       )
     : [];
 
+  const upgradeOdds = normalizePackUpgradeOdds(raw.upgradeOdds);
+
   return {
     id: cleanText(raw.id, 40) || `pack-${index + 1}`,
     name: cleanText(raw.name, PACK_LIMITS.maxNameChars) || `ซองที่ ${index + 1}`,
@@ -151,6 +154,11 @@ const normalizePack = (raw: Partial<CardPack>, index: number): CardPack => {
     // pool ว่าง = สุ่มจากนักเตะทั้งเกม (ไม่ส่งฟิลด์นี้ไปเลย)
     ...(pool.length > 0 ? { pool } : {}),
     description: cleanText(raw.description, PACK_LIMITS.maxDescriptionChars),
+    /*
+     * ไม่ได้ตั้งค่าตีบวก = ไม่ส่งฟิลด์นี้ขึ้นไปเลย ซองจะออก +0 ทุกใบเหมือนเดิม
+     * (เหมือน pool กับ availableUntil — Firestore ปฏิเสธ undefined ที่ใส่คีย์ไว้เฉย ๆ)
+     */
+    ...(upgradeOdds ? { upgradeOdds } : {}),
     /*
      * ไม่ได้ตั้งเวลาปิด = ไม่ส่งฟิลด์นี้ขึ้นไปเลย
      * (Firestore ปฏิเสธค่า undefined ถ้าใส่คีย์ไว้เฉย ๆ จะเซฟไม่ผ่านทั้งก้อน)

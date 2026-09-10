@@ -8,7 +8,13 @@ import { useEffect, useState } from 'react';
 import { PackContentsModal } from '@/components/pack/PackContentsModal';
 import { BULK_PACK_COUNT } from '@/data/cards';
 import { PlayerCard } from '@/components/player/PlayerCard';
-import { formatOdds, getMythicalChance, getPackHighlight, getPackPlayers } from '@/services/cardPack';
+import {
+  formatOdds,
+  getMythicalChance,
+  getPackHighlight,
+  getPackPlayers,
+  getPackUpgradeRange,
+} from '@/services/cardPack';
 import { formatTimeLeft, packTimeLeft } from '@/services/packConfig';
 import { playSfx } from '@/services/sound';
 import type { CardPack, PackTier } from '@/types/card';
@@ -78,6 +84,8 @@ export const PackCard = ({ pack, coins, opening = false, disabled = false, onOpe
   const art = TIER_ART[pack.tier];
   const mythicalChance = getMythicalChance(pack);
   const highlight = getPackHighlight(pack);
+  /** null = ซองนี้ออก +0 ทุกใบ ไม่ต้องโชว์บรรทัดค่าตีบวก */
+  const upgradeRange = getPackUpgradeRange(pack);
   const totalPlayers = getPackPlayers(pack).length;
 
   return (
@@ -152,6 +160,14 @@ export const PackCard = ({ pack, coins, opening = false, disabled = false, onOpe
             <dt>จำนวนการ์ด</dt>
             <dd className="font-mono text-chalk/70">{pack.cardCount}</dd>
           </div>
+          {upgradeRange && (
+            <div className="flex justify-between">
+              <dt>ค่าตีบวก</dt>
+              <dd className="font-mono text-gold">
+                สุ่ม +{upgradeRange.min} ถึง +{upgradeRange.max}
+              </dd>
+            </div>
+          )}
           <div className="flex justify-between gap-4">
             <dt>โอกาส</dt>
             <dd className="truncate font-mono text-chalk/70" title={formatOdds(pack)}>

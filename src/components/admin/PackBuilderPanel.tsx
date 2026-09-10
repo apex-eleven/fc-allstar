@@ -11,7 +11,13 @@
 import { useState } from 'react';
 import { CardMultiPicker } from '@/components/admin/CardMultiPicker';
 import { useGameConfig } from '@/hooks/useGameConfig';
-import { getPackPlayers } from '@/services/cardPack';
+import {
+  getPackPlayers,
+  getPackUpgradeChances,
+  getPackUpgradeRange,
+  PACK_UPGRADE_COLUMNS,
+  PACK_UPGRADE_PRESETS,
+} from '@/services/cardPack';
 import {
   createEmptyPack,
   findEmptyRarities,
@@ -102,6 +108,16 @@ export const PackBuilderPanel = () => {
     );
   };
 
+  /** แก้ค่าน้ำหนักค่าตีบวกทีละช่อง (ช่องที่ index N = ผลลัพธ์ +N) */
+  const patchUpgrade = (plus: number, value: number) => {
+    playSfx('click');
+    const current = pack.upgradeOdds ?? PACK_UPGRADE_PRESETS.none.odds;
+    const next = Array.from({ length: PACK_UPGRADE_COLUMNS }, (_, index) =>
+      index === plus ? Math.max(0, value) : (current[index] ?? 0),
+    );
+    patch({ upgradeOdds: next });
+  };
+
   const patchOdds = (rarity: Rarity, value: number) => {
     if (!pack) return;
     patch({ odds: { ...pack.odds, [rarity]: Math.min(Math.max(value, 0), 100) } });
@@ -133,6 +149,9 @@ export const PackBuilderPanel = () => {
   if (!pack) return null;
 
   const total = sumOdds(pack.odds);
+  const upgradeOn = Array.isArray(pack.upgradeOdds);
+  const upgradeChances = getPackUpgradeChances(pack);
+  const upgradeRange = getPackUpgradeRange(pack);
   /* คิดครั้งเดียวตอน render — แผงแอดมินไม่ต้องนับถอยหลังแบบวินาทีต่อวินาที */
   const timeLeft = packTimeLeft(pack);
   const expired = isPackExpired(pack);
@@ -370,6 +389,87 @@ export const PackBuilderPanel = () => {
             ⚠️ ตั้งโอกาสได้ระดับ {emptyRarities.join(', ')} ไว้ แต่ไม่มีการ์ดระดับนั้นในซอง —
             สุ่มไม่มีทางออก ต้องใส่การ์ดเพิ่มหรือปรับโอกาสเป็น 0
           </p>
+        )}
+      </div>
+
+      {/* ── ค่าตีบวกที่ติดมากับการ์ด ── */}
+      <div className="space-y-2 rounded-xl border border-white/10 bg-black/25 p-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <p className="eyebrow">ค่าตีบวกที่ติดมากับการ์ด</p>
+            <p className="mt-0.5 text-[11px] text-chalk/40">
+              สุ่มแยกต่อการ์ด 1 ใบ · ปิดไว้ = ออก +0 ทุกใบเหมือนซองปกติ
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              playSfx('click');
+              patch({
+                upgradeOdds: upgradeOn ? undefined : [...PACK_UPGRADE_PRESETS.standard.odds],
+              });
+            }}
+            className={cn(
+              'rounded-lg px-4 py-2 text-xs font-bold uppercase transition-colors',
+              upgradeOn ? 'bg-neon text-ink-900' : 'bg-white/5 text-chalk/50',
+            )}
+          >
+            {upgradeOn ? 'เปิดอยู่' : 'ปิดอยู่'}
+          </button>
+        </div>
+
+        {upgradeOn && (
+          <>
+            <div className="flex flex-wrap gap-1.5">
+              {Object.entries(PACK_UPGRADE_PRESETS).map(([key, preset]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => {
+                    playSfx('click');
+                    patch({ upgradeOdds: [...preset.odds] });
+                  }}
+                  className="rounded bg-white/5 px-2.5 py-1 text-[10px] uppercase text-chalk/60 hover:bg-white/10"
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-9">
+              {upgradeChances.map(({ plus, chance }) => (
+                <label key={plus} className="block">
+                  <span
+                    className={cn('eyebrow', plus >= 7 ? 'text-gold' : plus === 0 ? 'text-chalk/40' : '')}
+                  >
+                    +{plus}
+                  </span>
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.5}
+                    value={pack.upgradeOdds?.[plus] ?? 0}
+                    onChange={(event) => patchUpgrade(plus, Number(event.target.value) || 0)}
+                    className={cn(inputClass, 'mt-1 font-mono')}
+                  />
+                  <span className="mt-0.5 block text-center font-mono text-[10px] text-chalk/35">
+                    {chance.toFixed(1)}%
+                  </span>
+                </label>
+              ))}
+            </div>
+
+            <p className="text-[11px] text-chalk/40">
+              ตัวเลขเป็นน้ำหนัก ไม่ต้องรวมให้ครบ 100 — ระบบคิดสัดส่วนให้เอง (เปอร์เซ็นต์จริงอยู่ใต้ช่อง)
+            </p>
+
+            {!upgradeRange && (
+              <p className="text-[11px] text-[#F0A070]">
+                ⚠️ ตอนนี้ให้น้ำหนักแค่ช่อง +0 — ซองนี้จะออก +0 ทุกใบ ไม่ต่างจากปิดสวิตช์
+              </p>
+            )}
+          </>
         )}
       </div>
 
