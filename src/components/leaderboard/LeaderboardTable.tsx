@@ -2,7 +2,11 @@
  * ตารางอันดับผู้จัดการทีม
  *
  * สามอันดับแรกได้ฉายาประจำอันดับ (1ST / 2ND / 3RD CHAMPION) ในคอลัมน์ "ระดับ"
- * โดยป้ายฉายา "แทนที่" ป้ายระดับปกติ ไม่ได้แสดงคู่กัน — อันดับ 1 ได้แถบพื้นหลังทองเพิ่มอีกชั้น
+ * โดยป้ายฉายา "แทนที่" ป้ายระดับปกติ ไม่ได้แสดงคู่กัน
+ *
+ * อันดับ 1 ได้พื้นหลังพิเศษอีกชั้น — รูปแบนเนอร์ที่แอดมินตั้งไว้ (ADMIN → แบนเนอร์อันดับ 1)
+ * ปิดหรือรูปใช้ไม่ได้เมื่อไหร่ จะถอยไปใช้แถบไล่สีทองแบบเดิมเอง ความมืดของฝ้าที่คลุมรูป
+ * มาจากค่าตั้งด้วย เพราะข้อมูลในตารางต้องอ่านออกก่อนความสวยของรูปเสมอ
  * คะแนนคือจำนวนดาว (⭐): ชนะ +1 · เสมอ 0 · แพ้ −1
  *
  * บนมือถือซ่อนคอลัมน์รอง (ระดับ / ช-ส-พ) แล้วย้ายไปไว้ใต้ชื่อทีมแทน
@@ -12,6 +16,8 @@
 import { Avatar } from '@/components/profile/Avatar';
 import { DevBadge } from '@/components/rank/DevBadge';
 import { ChampionTitle, RankBadge } from '@/components/rank/RankBadge';
+import { useGameConfig } from '@/hooks/useGameConfig';
+import { getChampionRowStyle } from '@/services/championBanner';
 import { getChampionTitle } from '@/services/rank';
 import { isOwnerUsername } from '@/services/rankRewards';
 import type { LeaderboardEntry } from '@/types/match';
@@ -37,116 +43,128 @@ const COLUMNS: Array<{ label: string; className?: string }> = [
   { label: '' },
 ];
 
-export const LeaderboardTable = ({ entries, onSelect }: LeaderboardTableProps) => (
-  <div className="panel overflow-x-auto">
-    <table className="w-full text-sm md:min-w-[680px]">
-      <thead>
-        <tr className="border-b border-white/5 text-left">
-          {COLUMNS.map((column, index) => (
-            <th
-              key={`${column.label}-${index}`}
-              className={cn('eyebrow px-2 py-3 font-normal sm:px-4', column.className)}
-            >
-              {column.label}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {entries.map((entry) => {
-          const isChampion = entry.rank === 1;
-          /** สามอันดับแรกใช้ป้ายฉายาแทนป้ายระดับ */
-          const podium = getChampionTitle(entry.rank);
-          // ทีมจำลองไม่มี uid จึงกดดูไม่ได้ (ไม่มีตัวจริงจริง ๆ ให้ดู)
-          const canPreview = Boolean(entry.uid && onSelect);
+export const LeaderboardTable = ({ entries, onSelect }: LeaderboardTableProps) => {
+  const { championBanner } = useGameConfig();
+  /** undefined = ไม่มีแบนเนอร์ให้วาด ให้แถวอันดับ 1 ถอยไปใช้แถบทองแบบเดิม */
+  const bannerStyle = getChampionRowStyle(championBanner);
 
-          return (
-            <tr
-              key={`${entry.rank}-${entry.teamName}`}
-              onClick={() => entry.uid && onSelect?.(entry.uid)}
-              className={cn(
-                'border-b border-white/5 last:border-0',
-                canPreview && 'cursor-pointer transition-colors hover:bg-white/[0.04]',
-                entry.isCurrentUser && 'bg-kit/10',
-                // แถบทองบาง ๆ ให้อันดับ 1 เด่นออกมาจากตารางทั้งหมด
-                isChampion && 'bg-gradient-to-r from-gold/15 via-gold/5 to-transparent',
-              )}
-            >
-              <td
+  return (
+    <div className="panel overflow-x-auto">
+      <table className="w-full text-sm md:min-w-[680px]">
+        <thead>
+          <tr className="border-b border-white/5 text-left">
+            {COLUMNS.map((column, index) => (
+              <th
+                key={`${column.label}-${index}`}
+                className={cn('eyebrow px-2 py-3 font-normal sm:px-4', column.className)}
+              >
+                {column.label}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {entries.map((entry) => {
+            const isChampion = entry.rank === 1;
+            /** สามอันดับแรกใช้ป้ายฉายาแทนป้ายระดับ */
+            const podium = getChampionTitle(entry.rank);
+            // ทีมจำลองไม่มี uid จึงกดดูไม่ได้ (ไม่มีตัวจริงจริง ๆ ให้ดู)
+            const canPreview = Boolean(entry.uid && onSelect);
+
+            return (
+              <tr
+                key={`${entry.rank}-${entry.teamName}`}
+                onClick={() => entry.uid && onSelect?.(entry.uid)}
+                // ต้องเป็น inline style เพราะ url ของรูปมาจากค่าตั้ง ไม่ใช่คลาสตายตัว
+                style={isChampion ? bannerStyle : undefined}
                 className={cn(
-                  'px-2 py-3 font-display text-lg sm:px-4',
-                  MEDAL_TONE[entry.rank] ?? 'text-chalk/60',
+                  'border-b border-white/5 last:border-0',
+                  canPreview && 'cursor-pointer transition-colors hover:bg-white/[0.04]',
+                  entry.isCurrentUser && 'bg-kit/10',
+                  // ไม่มีแบนเนอร์ = แถบทองบาง ๆ แบบเดิม อันดับ 1 ยังเด่นออกมาอยู่
+                  isChampion &&
+                    !bannerStyle &&
+                    'bg-gradient-to-r from-gold/15 via-gold/5 to-transparent',
+                  // มีแบนเนอร์ = ตีกรอบทองรอบแถวแทน ให้ขอบเขตของรูปชัดว่าจบตรงไหน
+                  isChampion && bannerStyle && 'ring-1 ring-inset ring-gold/40',
                 )}
               >
-                {entry.rank}
-              </td>
+                <td
+                  className={cn(
+                    'px-2 py-3 font-display text-lg sm:px-4',
+                    MEDAL_TONE[entry.rank] ?? 'text-chalk/60',
+                  )}
+                >
+                  {entry.rank}
+                </td>
 
-              <td className="max-w-[11rem] px-2 py-3 sm:max-w-none sm:px-4">
-                <div className="flex items-center gap-2">
-                  <Avatar src={entry.avatar} name={entry.managerName} size="xs" />
+                <td className="max-w-[11rem] px-2 py-3 sm:max-w-none sm:px-4">
+                  <div className="flex items-center gap-2">
+                    <Avatar src={entry.avatar} name={entry.managerName} size="xs" />
 
-                  <div className="min-w-0">
-                    <p className="flex flex-wrap items-center gap-x-2 font-semibold">
-                      <span className="truncate">{entry.teamName}</span>
-                    </p>
-                    <p className="flex items-center gap-1.5 text-xs text-chalk/45">
-                      <span className="truncate">{entry.managerName}</span>
-                      {/* ป้ายทีมพัฒนา ติดที่บรรทัดชื่อผู้จัดการ ไม่ใช่ชื่อทีม */}
-                      {isOwnerUsername(entry.managerName) && <DevBadge />}
-                      {entry.isCurrentUser && <span className="shrink-0 text-neon">(คุณ)</span>}
-                    </p>
+                    <div className="min-w-0">
+                      <p className="flex flex-wrap items-center gap-x-2 font-semibold">
+                        <span className="truncate">{entry.teamName}</span>
+                      </p>
+                      <p className="flex items-center gap-1.5 text-xs text-chalk/45">
+                        <span className="truncate">{entry.managerName}</span>
+                        {/* ป้ายทีมพัฒนา ติดที่บรรทัดชื่อผู้จัดการ ไม่ใช่ชื่อทีม */}
+                        {isOwnerUsername(entry.managerName) && <DevBadge />}
+                        {entry.isCurrentUser && <span className="shrink-0 text-neon">(คุณ)</span>}
+                      </p>
+                    </div>
                   </div>
-                </div>
 
-                {/* จอเล็ก: ยัดข้อมูลของคอลัมน์ที่ซ่อนไปไว้ใต้ชื่อทีมแทน */}
-                <p className="mt-1 flex items-center gap-2 sm:hidden">
+                  {/* จอเล็ก: ยัดข้อมูลของคอลัมน์ที่ซ่อนไปไว้ใต้ชื่อทีมแทน */}
+                  <p className="mt-1 flex items-center gap-2 sm:hidden">
+                    {podium ? (
+                      <ChampionTitle rank={entry.rank} size="xs" />
+                    ) : (
+                      <RankBadge points={entry.points} size="xs" />
+                    )}
+                    <span className="font-mono text-[10px] text-chalk/45">
+                      {entry.wins}/{entry.draws}/{entry.losses}
+                    </span>
+                  </p>
+                </td>
+
+                {/* คอลัมน์ "ระดับ" — สามอันดับแรกโชว์ฉายาแทนระดับปกติ */}
+                <td className="hidden px-2 py-3 sm:table-cell sm:px-4">
                   {podium ? (
                     <ChampionTitle rank={entry.rank} size="xs" />
                   ) : (
                     <RankBadge points={entry.points} size="xs" />
                   )}
-                  <span className="font-mono text-[10px] text-chalk/45">
-                    {entry.wins}/{entry.draws}/{entry.losses}
-                  </span>
-                </p>
-              </td>
+                </td>
 
-              {/* คอลัมน์ "ระดับ" — สามอันดับแรกโชว์ฉายาแทนระดับปกติ */}
-              <td className="hidden px-2 py-3 sm:table-cell sm:px-4">
-                {podium ? (
-                  <ChampionTitle rank={entry.rank} size="xs" />
-                ) : (
-                  <RankBadge points={entry.points} size="xs" />
-                )}
-              </td>
+                <td className="px-2 py-3 font-mono sm:px-4">{entry.teamOvr}</td>
 
-              <td className="px-2 py-3 font-mono sm:px-4">{entry.teamOvr}</td>
+                <td className="hidden px-2 py-3 font-mono text-chalk/60 md:table-cell md:px-4">
+                  {entry.wins}/{entry.draws}/{entry.losses}
+                </td>
 
-              <td className="hidden px-2 py-3 font-mono text-chalk/60 md:table-cell md:px-4">
-                {entry.wins}/{entry.draws}/{entry.losses}
-              </td>
+                <td className="whitespace-nowrap px-2 py-3 font-display text-lg text-gold sm:px-4">
+                  ⭐ {formatNumber(entry.points)}
+                </td>
 
-              <td className="whitespace-nowrap px-2 py-3 font-display text-lg text-gold sm:px-4">
-                ⭐ {formatNumber(entry.points)}
-              </td>
-
-              <td className="px-2 py-3 text-right sm:px-4">
-                {canPreview && (
-                  <>
-                    {/* จอเล็กใช้ลูกศรแทนคำ เพื่อไม่ให้ตารางกว้างเกินจอ */}
-                    <span className="text-chalk/40 sm:hidden" aria-hidden>
-                      ›
-                    </span>
-                    <span className="hidden whitespace-nowrap rounded border border-white/10 px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-chalk/50 sm:inline">
-                      ดูทีม
-                    </span>
-                  </>
-                )}
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
-  </div>
-);
+                <td className="px-2 py-3 text-right sm:px-4">
+                  {canPreview && (
+                    <>
+                      {/* จอเล็กใช้ลูกศรแทนคำ เพื่อไม่ให้ตารางกว้างเกินจอ */}
+                      <span className="text-chalk/40 sm:hidden" aria-hidden>
+                        ›
+                      </span>
+                      <span className="hidden whitespace-nowrap rounded border border-white/10 px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-chalk/50 sm:inline">
+                        ดูทีม
+                      </span>
+                    </>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+};

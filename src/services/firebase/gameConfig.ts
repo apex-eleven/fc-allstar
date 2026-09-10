@@ -56,6 +56,8 @@ export const CONFIG_DOCS = {
   fusion: 'fusion',
   /** ล็อกการ์ด: รายชื่อนักเตะที่ห้ามหาได้จากทุกระบบจนกว่าจะปลดล็อก (ADMIN → ล็อกการ์ด) */
   cardLock: 'cardLock',
+  /** แบนเนอร์อันดับ 1: รูปพื้นหลังของแถวแชมป์และความมืดของฝ้า (ADMIN → แบนเนอร์อันดับ 1) */
+  championBanner: 'championBanner',
 } as const;
 
 const COLLECTION = 'config';

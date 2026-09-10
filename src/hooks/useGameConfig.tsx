@@ -53,6 +53,7 @@ import { normalizePass } from '@/services/pass';
 import { normalizeCardCash } from '@/services/cardCash';
 import { normalizeFusion } from '@/services/fusion';
 import { normalizeCardLock, setCardLock } from '@/services/cardLock';
+import { normalizeChampionBanner } from '@/services/championBanner';
 import { normalizeMarketConfig } from '@/services/market';
 import { normalizeLoginBonus } from '@/services/loginBonus';
 import { normalizePointsExchange } from '@/services/pointsExchange';
@@ -61,6 +62,7 @@ import type { BotConfig } from '@/types/bot';
 import type { CardCashConfig } from '@/types/cardCash';
 import type { FusionConfig } from '@/types/fusion';
 import type { CardLockConfig } from '@/types/cardLock';
+import type { ChampionBannerConfig } from '@/types/championBanner';
 import type { MarketConfig } from '@/types/market';
 import type { LoginBonusConfig } from '@/types/loginBonus';
 import type { CardPack, ExchangeDeal, PointsExchangeConfig } from '@/types/card';
@@ -150,6 +152,10 @@ interface GameConfigContextValue {
   saveMarket: (config: MarketConfig) => Promise<string | null>;
   /** บันทึกค่าตั้งร้านไอเทม คืนข้อความ error (null = สำเร็จ) */
   saveItemShop: (config: UpgradeItemShopConfig) => Promise<string | null>;
+  /** แบนเนอร์อันดับ 1 ในตารางอันดับ (ยังไม่เคยตั้ง = รูปที่ให้มาในโปรเจกต์) */
+  championBanner: ChampionBannerConfig;
+  /** บันทึกค่าแบนเนอร์อันดับ 1 คืนข้อความ error (null = สำเร็จ) */
+  saveChampionBanner: (config: ChampionBannerConfig) => Promise<string | null>;
   /** รายชื่อนักเตะที่ถูกล็อก ห้ามหาได้จากทุกระบบ (ยังไม่เคยตั้ง = ไม่ล็อกใครเลย) */
   cardLock: CardLockConfig;
   /** บันทึกรายชื่อที่ล็อก คืนข้อความ error (null = สำเร็จ) */
@@ -225,6 +231,8 @@ export const GameConfigProvider = ({ children }: { children: ReactNode }) => {
   const [serverFusion, setServerFusion] = useState<Partial<FusionConfig> | null>(null);
   /** รายชื่อการ์ดที่ล็อกไว้ — null = ยังไม่เคยตั้ง (ไม่ล็อกใครเลย) */
   const [serverCardLock, setServerCardLock] = useState<Partial<CardLockConfig> | null>(null);
+  /** แบนเนอร์อันดับ 1 — null = ยังไม่เคยตั้ง (ใช้รูปที่ให้มาในโปรเจกต์) */
+  const [serverBanner, setServerBanner] = useState<Partial<ChampionBannerConfig> | null>(null);
 
   useEffect(() => {
     if (!ONLINE) return undefined;
@@ -312,7 +320,13 @@ export const GameConfigProvider = ({ children }: { children: ReactNode }) => {
       setServerCardLock,
     );
 
+    const stopBanner = watchConfigDoc<Partial<ChampionBannerConfig>>(
+      CONFIG_DOCS.championBanner,
+      setServerBanner,
+    );
+
     return () => {
+      stopBanner();
       stopCardLock();
       stopFusion();
       stopBots();
@@ -501,6 +515,12 @@ export const GameConfigProvider = ({ children }: { children: ReactNode }) => {
     [write],
   );
 
+  const saveChampionBanner = useCallback(
+    (next: ChampionBannerConfig) =>
+      write(CONFIG_DOCS.championBanner, { ...normalizeChampionBanner(next) }),
+    [write],
+  );
+
   /** ค่าตั้งตลาดที่ใช้จริง — ของเซิร์ฟเวอร์ต้องผ่านการตรวจก่อนเสมอ */
   const market = useMemo(() => normalizeMarketConfig(serverMarket), [serverMarket]);
 
@@ -514,6 +534,9 @@ export const GameConfigProvider = ({ children }: { children: ReactNode }) => {
 
   /** รายชื่อที่ล็อกจริง — บีบค่าจากเซิร์ฟเวอร์ให้อยู่ในกรอบก่อนเสมอ */
   const cardLock = useMemo(() => normalizeCardLock(serverCardLock), [serverCardLock]);
+
+  /** ค่าแบนเนอร์อันดับ 1 ที่ใช้จริง — บีบค่าจากเซิร์ฟเวอร์ให้อยู่ในกรอบก่อนเสมอ */
+  const championBanner = useMemo(() => normalizeChampionBanner(serverBanner), [serverBanner]);
 
   /*
    * ป้อนรายชื่อเข้าทะเบียนระดับโมดูลด้วย ไม่ใช่แค่ส่งผ่าน context
@@ -625,6 +648,8 @@ export const GameConfigProvider = ({ children }: { children: ReactNode }) => {
       saveFusion,
       cardLock,
       saveCardLock,
+      championBanner,
+      saveChampionBanner,
       isOwner,
       uid,
       saveLadder,
@@ -667,6 +692,8 @@ export const GameConfigProvider = ({ children }: { children: ReactNode }) => {
       saveFusion,
       cardLock,
       saveCardLock,
+      championBanner,
+      saveChampionBanner,
       saveAnnouncement,
       saveBans,
       saveExchangeDeals,
